@@ -1,38 +1,55 @@
 # Undertow: liquidation radar for Perpl (Monad)
 
-Local dashboard, data layer, risk engine, a market-making bot (paper mode, plus a locked live mode) and an Envio indexer.
-The app itself uses only the Python standard library. `reportlab` is needed to rebuild the PDFs in `docs/`, `eth-account`
-for `undertow/testnet.py`.
+*See the pull before it takes you.* A read-only risk screen for [Perpl](https://perpl.xyz), a perpetual-futures exchange that runs
+fully on Monad. Every position on Perpl is public, so Undertow can compute where every trader would be liquidated, show where those
+points bunch up, estimate how far a chain reaction could push the price, and warn a trader about other people's liquidations that sit
+between the price and their own.
+
+* **Radar**: liquidation zones, a plain-language warning, a cascade simulator (a labelled worst-case estimate).
+* **Trade**: order preview with liquidation price, zones in your path, fees, funding per day and slippage. It never sends an order.
+* **Markets / Protocol / Wallets / Bot**: market table; exchange-wide numbers (volume, fees, deposits, liquidations via the Envio
+  indexer); wallet search with watchlist and compare; the market-making bot's state.
+* **Checks**: `python -m undertow.verify` (or the button on the Protocol tab) compares our numbers with Perpl's own public API.
+
+The app uses only the Python standard library. Optional: `reportlab` and `pymupdf` (the PDFs in `docs/`), `eth-account` (`undertow/testnet.py`).
+Needs `perpl-cli` (`cargo install perpl-cli`).
 
     python -m undertow.server --refresh      # dashboard at http://localhost:8000, data refreshes itself
+    python -m undertow.verify                # correctness checks against Perpl's REST API
     python -m undertow.bot --paper           # paper bot (reads the data the server keeps fresh)
-    python -m undertow.refresher --once      # one data refresh without the dashboard
-    python -m unittest discover -s tests     # 50 tests
+    python -m unittest discover -s tests     # 65 tests
 
-Requires `perpl-cli` (cargo install perpl-cli). Pass `--rpc <your url>` (for example Alchemy) for faster refreshes.
-Tabs: Radar (zones, cascade simulator), Markets, Protocol, Wallets (search, watchlist, compare), Bot.
+If the default Monad RPC is slow, rate-limited or unreachable, set `UNDERTOW_RPC` (for example `https://rpc2.monad.xyz`, or your own
+Alchemy URL): `$env:UNDERTOW_RPC="https://rpc2.monad.xyz"`. On the machine this was built on, `rpc.monad.xyz` was unreachable at times.
 
 ## Networks
 
-`UNDERTOW_NETWORK=testnet` switches every module to Perpl's testnet (separate data in `data/testnet/`, BTC is market 16).
-In PowerShell: `$env:UNDERTOW_NETWORK="testnet"; python -m undertow.server --refresh --port 8001`.
+`UNDERTOW_NETWORK=testnet` switches every module to Perpl's testnet (separate data in `data/testnet/`; BTC is market 16, not 1).
+Example: `$env:UNDERTOW_NETWORK="testnet"; python -m undertow.server --refresh --port 8001`.
 
-## Testing the bot on testnet (before any mainnet use)
+## The bot (paper mode, live mode locked)
 
-1. `python -m undertow.testnet new` creates a throwaway testnet key in `data/testnet/key.txt` and prints its address.
-2. Send that address testnet MON (gas) from a faucet and at least 100 test aUSD (the testnet minimum account deposit).
-   Test aUSD cannot be minted by anyone (the token's mint is role-gated); get it through Perpl's testnet app.
-3. `python -m undertow.testnet status`, then `python -m undertow.testnet fund 100` (approve + create the Perpl account).
-4. Keep `UNDERTOW_NETWORK=testnet python -m undertow.server --refresh --port 8001` running, then in another window:
+Post-only market maker that leans against inventory, widens or pulls quotes near big liquidation zones, and halts on a daily-loss,
+leverage or own-liquidation-distance limit or a `KILL` file. Every order expires by itself in about a minute. Live mode needs
+`UNDERTOW_ALLOW_LIVE=yes` and a key; mainnet additionally needs `UNDERTOW_ALLOW_MAINNET=yes`. It has **not** sent an order on any
+network. Testnet runbook:
+
+1. `python -m undertow.testnet new` creates a throwaway testnet key in `data/testnet/key.txt` (git-ignored) and prints its address.
+2. Fund that address with testnet MON (gas) and at least 100 test aUSD (Perpl's testnet minimum). The test token cannot be minted freely.
+3. `python -m undertow.testnet status`, then `python -m undertow.testnet fund 100`.
+4. Keep `UNDERTOW_NETWORK=testnet python -m undertow.server --refresh --port 8001` running, then:
    `$env:UNDERTOW_NETWORK="testnet"; $env:UNDERTOW_ALLOW_LIVE="yes"; python -m undertow.bot --live --cycles 20`
-5. Watch the Bot tab on port 8001. Orders are post-only and expire by themselves in about a minute.
 
-Mainnet live mode additionally needs `UNDERTOW_ALLOW_MAINNET=yes` and `PERPL_PRIVATE_KEY` for a SEPARATE small wallet.
-Never commit keys; `data/` is git-ignored.
+Never commit keys. `data/` is git-ignored.
 
-## Indexer
+## Indexer and hosting
 
-`indexer/` is an Envio HyperIndex project (needs WSL 2 + Docker on Windows). See `indexer/README.md`.
+* `indexer/` is an Envio HyperIndex project (needs WSL 2 and Docker on Windows); see `indexer/README.md`.
+* `Dockerfile` and `docs/DEPLOY.md` cover hosting the read-only dashboard.
+* `docs/ARCHITECTURE.md`, `docs/SUBMISSION_CHECKLIST.md`, `docs/VIDEO_SCRIPTS.md`, `docs/logo.svg`.
 
-Layout: `undertow/` code, `undertow/web/index.html` dashboard, `data/` generated data, `abi/Exchange.json` Perpl contract ABI,
-`indexer/` Envio indexer, `docs/` report builders. Progress PDFs are in the project root.
+## Honest limits
+
+Data is a rolling snapshot (fresh to about a minute, not to the block). The cascade simulator is not validated against a real
+historical liquidation. Liquidation-aware order rules are checked about once a minute and live inside Undertow, not on Perpl.
+Wallet profit-and-loss statistics (win rate, profit factor) are not built.

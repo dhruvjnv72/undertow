@@ -22,7 +22,13 @@ BOT_DIR = DATA / "bot"
 # blocked or down, or to use your own (Alchemy etc). Working alternatives found 2026-10-11: https://rpc2.monad.xyz allows
 # 1,000-block log queries; rpc1.monad.xyz and rpc-mainnet.monadinfra.com allow 100.
 RPC_OVERRIDE = os.environ.get("UNDERTOW_RPC", "").strip()
-RPC = RPC_OVERRIDE or ("https://testnet-rpc.monad.xyz" if TESTNET else "https://rpc.monad.xyz")
+# UNDERTOW_RPC may list several endpoints separated by commas. Whatever is listed first is preferred; the built-in public
+# endpoints follow as fallbacks, and the data layer rotates to the next one when a call hangs or fails.
+PUBLIC_RPCS = (["https://testnet-rpc.monad.xyz"] if TESTNET else
+               ["https://rpc.monad.xyz", "https://rpc2.monad.xyz", "https://rpc-mainnet.monadinfra.com", "https://rpc1.monad.xyz"])
+RPC_LIST = [u.strip() for u in RPC_OVERRIDE.split(",") if u.strip()] + [u for u in PUBLIC_RPCS if u not in RPC_OVERRIDE]
+RPC = RPC_LIST[0]
+RPC_OVERRIDE = RPC_LIST[0] if os.environ.get("UNDERTOW_RPC", "").strip() else ""
 EXCHANGE = "0x1964C32f0bE608E7D29302AFF5E61268E72080cc" if TESTNET else "0x34B6552d57a35a1D042CcAe1951BD1C370112a6F"
 COLLATERAL = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC" if TESTNET else "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a"
 CHAIN_ID = 10143 if TESTNET else 143

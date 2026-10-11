@@ -181,7 +181,7 @@ S += [Paragraph("Facts learned from Perpl's documentation", H2)]
 S += bullets([
     "<b>Liquidations go to the order book first.</b> If a position is too big, it is partly liquidated; what the book cannot absorb is bought "
     "by Perpl's own vault (PLP). This supports the cascade model's main assumption, and is why the 'share hitting the book' control matters.",
-    "<b>Funding is paid about hourly</b> (every 8,571 blocks); the dashboard now labels it that way.",
+    "<b>Funding is applied every 8,571 blocks</b>. The docs say 'about hourly'; Perpl's REST API later showed 2,580 seconds (about 43 minutes), which the dashboard now uses.",
     "<b>Our liquidation formula agrees with the docs</b> (4% maintenance on BTC gives liquidation after a 6% fall for a 10x long).",
     "<b>Testnet account minimum is 100 aUSD</b>; mainnet is 10 AUSD.",
 ])

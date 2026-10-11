@@ -24,21 +24,28 @@ SEL_GET_ACCOUNT_BY_ID = "05aca141"
 CNS_DECIMALS = 6
 
 
-def rpc_batch(calls: list[dict], rpc: str = PUBLIC_RPC, timeout: int = 30, retries: int = 6) -> list[dict]:
-    """POST a JSON-RPC batch. The public endpoint answers HTTP 429 when pushed; back off and retry."""
+def rpc_batch(calls: list[dict], rpc: str | None = None, timeout: int = 20, retries: int = 6) -> list[dict]:
+    """POST a JSON-RPC batch, trying each configured endpoint in turn. HTTP 429 (rate limit) backs off and retries."""
     body = json.dumps(calls).encode()
-    for attempt in range(retries):
-        req = urllib.request.Request(
-            rpc, data=body, headers={"Content-Type": "application/json", "User-Agent": "undertow/0.2"})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                out = json.loads(r.read())
-            return sorted(out, key=lambda x: x["id"])
-        except urllib.error.HTTPError as e:
-            if e.code != 429 or attempt == retries - 1:
-                raise
-            time.sleep(1.5 * 2 ** attempt)
-    raise RuntimeError("unreachable")
+    endpoints = ([rpc] if rpc else []) + [u for u in config.RPC_LIST if u != rpc]
+    last: Exception = RuntimeError("no endpoint")
+    for url in endpoints:
+        for attempt in range(retries):
+            req = urllib.request.Request(
+                url, data=body, headers={"Content-Type": "application/json", "User-Agent": "undertow/0.2"})
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as r:
+                    out = json.loads(r.read())
+                return sorted(out, key=lambda x: x["id"])
+            except urllib.error.HTTPError as e:
+                last = e
+                if e.code != 429:
+                    break  # try the next endpoint
+                time.sleep(1.5 * 2 ** attempt)
+            except Exception as e:  # timeout, connection refused, bad JSON: try the next endpoint
+                last = e
+                break
+    raise last
 
 
 def decode_account(hexdata: str) -> dict:

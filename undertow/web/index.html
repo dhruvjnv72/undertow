@@ -147,9 +147,14 @@
     <div style="margin-top:14px"><div class="muted small">Daily trading volume, last 60 days</div><div id="volchart"></div></div>
     <div style="margin-top:14px"><h2>Recent liquidations</h2><div class="scroll"><table id="liqtable"></table></div></div>
   </div>
-  <div class="card"><h2>Total open interest over time</h2><div id="oichart"></div><div class="muted small" id="oinote"></div></div>
+  <div class="card"><h2>Total open interest over time</h2><div class="row small muted" style="margin-bottom:6px">Timeframe <select id="oirange"><option value="1">last hour</option><option value="6">last 6 hours</option><option value="24">last 24 hours</option><option value="0" selected>everything collected</option></select></div><div id="oichart"></div><div class="muted small" id="oinote"></div></div>
   <div class="card"><h2>Markets: open interest, positions and collateral</h2><div class="scroll"><table id="protocoltable"></table></div></div>
   <div class="card muted small" id="protocolmissing"></div>
+  <div class="card">
+    <h2>Correctness checks against Perpl's own API</h2>
+    <div class="row"><button class="go" id="runverify">Run checks</button><span class="muted small" id="verifynote">Compares our numbers with Perpl's public REST API. Takes 10 to 40 seconds.</span></div>
+    <div class="scroll" style="margin-top:10px"><table id="verifytable"></table></div>
+  </div>
 </section>
 
 <section id="tab-bot" hidden>
@@ -284,7 +289,7 @@ function zoneTable() {
 /* ---------- markets ---------- */
 async function loadMarkets() {
   const m = await api("/api/markets");
-  $("#markettable").innerHTML = `<tr><th class="l">Market</th><th>Mark</th><th>Open interest</th><th>Longs</th><th>Shorts</th><th title="Perpl applies funding about once an hour (every 8,571 blocks)">Funding rate (hourly)</th><th>Max lev.</th><th class="l">Biggest danger</th></tr>` +
+  $("#markettable").innerHTML = `<tr><th class="l">Market</th><th>Mark</th><th>Open interest</th><th>Longs</th><th>Shorts</th><th title="Perpl applies funding every 8,571 blocks, about 43 minutes. The rate is a fraction of position value per interval.">Funding rate (per ~43 min)</th><th>Max lev.</th><th class="l">Biggest danger</th></tr>` +
     m.map(r => `<tr class="click" data-p="${r.perp_id}"><td class="l"><b>${esc(r.name)}</b></td><td>${price(r.mark)}</td><td>${money(r.oi_usd)}</td><td>${r.longs}</td><td>${r.shorts}</td><td>${r.funding_rate == null ? "–" : (r.funding_rate * 100).toFixed(4) + "%"}</td><td>${r.max_leverage}x</td><td class="l" style="white-space:normal"><span class="badge b-${r.risk}">${r.risk}</span><span class="muted small">${esc(r.sentence)}</span></td></tr>`).join("");
   document.querySelectorAll("#markettable tr.click").forEach(tr => tr.onclick = () => { perp = +tr.dataset.p; $("#perp").value = perp; showTab("radar"); loadRadar(); });
 }
@@ -331,11 +336,11 @@ async function loadProtocol() {
     const card = (label, val) => `<div style="min-width:170px"><div class="muted small">${label}</div><div style="font-size:22px;font-weight:600">${val}</div></div>`;
     $("#protocolcards").innerHTML = card("Open interest", money(d.total_oi_usd)) + card("Accounts with positions", d.accounts_with_positions) +
       card("Open positions", d.positions) + card("Balances of those accounts", money(d.balances_of_those_accounts));
-    drawOI(d.history);
+    window.oiHistory = d.history; drawOI(filterRange(d.history));
     drawEnvio(d.envio);
     $("#oinote").textContent = d.history.length < 2 ? "Collecting… needs at least two refreshes." :
       `${d.history.length} snapshots since ${d.history_started} UTC. History starts when the refresher was first run; it is not the exchange's full history.`;
-    $("#protocoltable").innerHTML = `<tr><th class="l">Market</th><th>Open interest</th><th>Share</th><th>Longs</th><th>Shorts</th><th>Long collateral</th><th>Short collateral</th><th title="Perpl applies funding about once an hour (every 8,571 blocks)">Funding rate (hourly)</th></tr>` +
+    $("#protocoltable").innerHTML = `<tr><th class="l">Market</th><th>Open interest</th><th>Share</th><th>Longs</th><th>Shorts</th><th>Long collateral</th><th>Short collateral</th><th title="Perpl applies funding every 8,571 blocks, about 43 minutes. The rate is a fraction of position value per interval.">Funding rate (per ~43 min)</th></tr>` +
       d.markets.map(m => `<tr><td class="l"><b>${esc(m.name)}</b></td><td>${money(m.oi_usd)}</td><td>${((m.oi_usd || 0) / d.total_oi_usd * 100).toFixed(1)}%</td><td>${m.longs}</td><td>${m.shorts}</td><td>${money(m.long_collateral)}</td><td>${money(m.short_collateral)}</td><td>${m.funding_rate == null ? "–" : (m.funding_rate * 100).toFixed(4) + "%"}</td></tr>`).join("");
     $("#protocolmissing").innerHTML = `<b>Not available yet:</b> ${d.not_available.join(", ")}. These need the exchange's event history (the Envio indexer), which is not built.`;
   } catch (e) { $("#protocolcards").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
@@ -359,6 +364,13 @@ function drawEnvio(e) {
   $("#liqtable").innerHTML = e.recent_liquidations.length ? `<tr><th class="l">Time (UTC)</th><th class="l">Market</th><th class="l">Side</th><th>Account</th><th>Liq. price</th><th>Size closed</th><th>Value</th><th class="l">Via</th></tr>` +
     e.recent_liquidations.map(l => `<tr><td class="l">${new Date(l.timestamp * 1000).toISOString().slice(0, 16).replace("T", " ")}</td><td class="l">${esc(l.perpName)}</td><td class="l">${l.side}</td><td>#${l.accountId}</td><td>${price(l.liqPrice)}</td><td>${l.liquidatedSize}</td><td>${money(l.notionalUsd)}</td><td class="l">${l.onOrderBook ? "order book" : "other"}</td></tr>`).join("") : `<tr><td class="muted l">No liquidations indexed yet.</td></tr>`;
 }
+function filterRange(h) {
+  const hrs = +$("#oirange").value;
+  if (!hrs || !h.length) return h;
+  const last = Date.parse(h[h.length - 1].ts.replace(" ", "T") + "Z");
+  return h.filter(p => last - Date.parse(p.ts.replace(" ", "T") + "Z") <= hrs * 3600e3);
+}
+$("#oirange").onchange = () => drawOI(filterRange(window.oiHistory || []));
 function drawOI(h) {
   if (h.length < 2) { $("#oichart").innerHTML = ""; return; }
   const W = 1000, H = 220, L = 56, R = 12, T = 12, B = 26;
@@ -370,6 +382,18 @@ function drawOI(h) {
   s += `<text x="${L}" y="${H - 6}">${esc(h[0].ts.slice(5, 16))}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${esc(h[h.length - 1].ts.slice(5, 16))}</text>`;
   $("#oichart").innerHTML = s + "</svg>";
 }
+
+$("#runverify").onclick = async () => {
+  $("#runverify").disabled = true; $("#verifynote").textContent = "Running… (reading the chain and Perpl's API)";
+  try {
+    const v = await api("/api/verify");
+    const badge = s => `<span class="badge ${s === "pass" ? "b-low" : s === "fail" ? "b-high" : "b-none"}">${s}</span>`;
+    $("#verifytable").innerHTML = `<tr><th class="l">Check</th><th class="l">Result</th><th class="l">Detail</th></tr>` +
+      v.checks.map(c => `<tr><td class="l" style="white-space:normal">${esc(c.name)}</td><td class="l">${badge(c.status)}</td><td class="l muted" style="white-space:normal">${esc(c.detail)}</td></tr>`).join("");
+    $("#verifynote").textContent = "Ran at " + v.ran_at + " UTC";
+  } catch (e) { $("#verifynote").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  $("#runverify").disabled = false;
+};
 
 /* ---------- bot ---------- */
 async function loadBot() {

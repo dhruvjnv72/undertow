@@ -108,30 +108,33 @@ def check_volume(perp_id: int, hours: int = 12) -> Check:
     if not q or not q["Trade"]:
         return Check("volume: indexer vs Perpl candles", "skipped", "indexer has no trades yet")
     first, last = q["Trade"][0]["timestamp"], q["last"][0]["timestamp"]
-    start_hour = (first // 3600 + 1) * 3600  # first fully covered hour
-    end_hour = (last // 3600) * 3600 - 3600  # last hour fully before the newest trade
-    hrs = list(range(start_hour, end_hour + 1, 3600))[-hours:]
+    # Prefer whole hours; if the indexer has not covered one yet, fall back to whole minutes (Perpl serves 60 s candles too).
+    for res, unit in ((3600, "hour"), (60, "minute")):
+        start = (first // res + 1) * res  # first fully covered window
+        end = (last // res) * res - res  # last window fully before the newest trade
+        hrs = list(range(start, end + 1, res))[-(hours if res == 3600 else 20):]
+        if hrs:
+            break
     if not hrs:
-        return Check("volume: indexer vs Perpl candles", "skipped", "indexer window does not yet cover one whole hour")
-    candles = rest(f"/market-data/{mk['id']}/candles/3600/{hrs[0] * 1000}-{(hrs[-1] + 3600) * 1000}")["d"]
+        return Check("volume: indexer vs Perpl candles", "skipped", "indexer window does not yet cover one whole minute")
+    candles = rest(f"/market-data/{mk['id']}/candles/{res}/{hrs[0] * 1000}-{(hrs[-1] + res) * 1000}")["d"]
     by_t = {c["t"] // 1000: c for c in candles}
     rows, worst = [], 0.0
     for h in hrs:
         a = envio_client.query("""query($c:Int!,$p:Int!,$a:Int!,$b:Int!){ Trade_aggregate(where:{chainId:{_eq:$c},perpId:{_eq:$p},timestamp:{_gte:$a,_lt:$b}}){
-            aggregate{ count sum{ notionalUsd } } } }""", {"c": config.CHAIN_ID, "p": perp_id, "a": h, "b": h + 3600})
+            aggregate{ count sum{ notionalUsd } } } }""", {"c": config.CHAIN_ID, "p": perp_id, "a": h, "b": h + res})
         ours = float(a["Trade_aggregate"]["aggregate"]["sum"]["notionalUsd"] or 0)
         c = by_t.get(h)
-        if not c:
-            continue
-        theirs = int(c["v"]) / 1e6
-        diff = abs(ours - theirs) / max(theirs, 1e-9) * 100
+        theirs = int(c["v"]) / 1e6 if c else 0.0  # a missing candle means no trades in that window
+        diff = abs(ours - theirs) / max(theirs, 1e-9) * 100 if theirs else (0.0 if ours == 0 else 100.0)
         worst = max(worst, diff)
-        rows.append((h, ours, theirs, diff, a["Trade_aggregate"]["aggregate"]["count"], c["n"]))
+        rows.append((h, ours, theirs, diff, a["Trade_aggregate"]["aggregate"]["count"], c["n"] if c else 0))
+    fmt = "%m-%d %H:00" if res == 3600 else "%m-%d %H:%M"
+    detail = "; ".join(f"{time.strftime(fmt, time.gmtime(h))}Z ours ${o:,.0f} vs Perpl ${t:,.0f} ({d:.2f}%, {n1} fills vs {n2} trades)"
+                       for h, o, t, d, n1, n2 in rows[-4:])
     if not rows:
         return Check("volume: indexer vs Perpl candles", "skipped", "no overlapping candles")
-    detail = "; ".join(f"{time.strftime('%m-%d %H:00', time.gmtime(h))}Z ours ${o:,.0f} vs Perpl ${t:,.0f} ({d:.2f}%, {n1} fills vs {n2} trades)"
-                       for h, o, t, d, n1, n2 in rows[-4:])
-    return Check(f"volume: {len(rows)} whole hours, worst difference {worst:.2f}%", "pass" if worst < 1.0 else "fail", detail)
+    return Check(f"volume: {len(rows)} whole {unit}s, worst difference {worst:.2f}%", "pass" if worst < 1.0 else "fail", detail)
 
 
 def check_funding(perp_id: int) -> Check:

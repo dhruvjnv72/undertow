@@ -29,7 +29,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import accounts as registry
-from . import config, envio_client, preview, protect
+from . import config, envio_client, preview, protect, verify
 from . import risk
 
 ROOT = Path(__file__).resolve().parent
@@ -266,6 +266,21 @@ def api_protect(q: dict) -> dict:
                        "Checked once per data refresh (about every 45 seconds), not every 0.4 s block."]}
 
 
+_verify_cache: dict = {"t": 0.0, "out": None}
+
+
+def api_verify() -> dict:
+    """Run the independent correctness checks against Perpl's public API (10 to 40 s). Cached for 60 s."""
+    with _lock:
+        if _verify_cache["out"] and time.time() - _verify_cache["t"] < 60:
+            return _verify_cache["out"]
+    checks = verify.run_all()
+    out = {"ran_at": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), "checks": [asdict(c) for c in checks]}
+    with _lock:
+        _verify_cache.update(t=time.time(), out=out)
+    return out
+
+
 def api_top() -> list[dict]:
     snap = snapshot()
     reg = registry.load_cache()
@@ -303,7 +318,7 @@ class Handler(BaseHTTPRequestHandler):
                       "/api/radar": lambda: api_radar(q), "/api/cascade": lambda: api_cascade(q),
                       "/api/wallet": lambda: api_wallet(q), "/api/top": lambda: api_top(),
                       "/api/protocol": lambda: api_protocol(), "/api/bot": lambda: api_bot(),
-                      "/api/preview": lambda: api_preview(q), "/api/protect": lambda: api_protect(q)}
+                      "/api/verify": lambda: api_verify(), "/api/preview": lambda: api_preview(q), "/api/protect": lambda: api_protect(q)}
             if u.path in routes:
                 return self._send(200, json.dumps(routes[u.path](), default=lambda o: asdict(o) if is_dataclass(o)
                                                   else str(o)).encode(), "application/json")

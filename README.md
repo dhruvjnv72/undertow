@@ -14,13 +14,20 @@ between the price and their own.
 The app uses only the Python standard library. Optional: `reportlab` and `pymupdf` (the PDFs in `docs/`), `eth-account` (`undertow/testnet.py`).
 Needs `perpl-cli` (`cargo install perpl-cli`).
 
-    python -m undertow.server --refresh      # dashboard at http://localhost:8000, data refreshes itself
+    start_dashboard.bat                      # Windows: double-click; starts the dashboard and opens the browser
+    python -m undertow.server --refresh      # same thing from a terminal; data refreshes itself every ~45 s
     python -m undertow.verify                # correctness checks against Perpl's REST API
     python -m undertow.bot --paper           # paper bot (reads the data the server keeps fresh)
     python -m unittest discover -s tests     # 65 tests
 
 If the default Monad RPC is slow, rate-limited or unreachable, set `UNDERTOW_RPC` (for example `https://rpc2.monad.xyz`, or your own
 Alchemy URL): `$env:UNDERTOW_RPC="https://rpc2.monad.xyz"`. On the machine this was built on, `rpc.monad.xyz` was unreachable at times.
+
+## Keeping the data fresh
+
+The dashboard refreshes itself every ~45 seconds, but only while the computer is awake and the server window is open. If the computer sleeps the
+feed pauses (the page then shows a red banner with the age) and it resumes by itself within about a minute of waking. For recording videos, set
+Windows to never sleep while plugged in; for an always-on dashboard, host it (docs/DEPLOY.md).
 
 ## Networks
 

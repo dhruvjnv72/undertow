@@ -65,6 +65,7 @@
 </header>
 
 <main>
+<div id="stalebanner" class="warn" hidden style="margin-bottom:16px"></div>
 <section id="tab-radar">
   <div class="card">
     <div class="row">
@@ -200,10 +201,13 @@ async function loadStatus() {
   try {
     const s = await api("/api/status");
     const ok = (a, b) => a === b ? '<b style="color:var(--ok)">✓</b>' : '<b style="color:var(--long)">✗</b>';
-    $("#status").innerHTML = `<span>Data <b>${s.age_seconds}s</b> old</span><span>Block <b>${s.block.toLocaleString()}</b></span>
+    $("#status").innerHTML = `<span>Data ${s.age_seconds > 180 ? `<b style="color:var(--long)">${s.age_seconds >= 3600 ? (s.age_seconds / 3600).toFixed(1) + " h" : Math.round(s.age_seconds / 60) + " min"} old</b>` : `<b>${s.age_seconds}s</b> old`}</span><span>Block <b>${s.block.toLocaleString()}</b></span>
       <span>${s.positions} positions · ${s.accounts} accounts</span>
       <span title="Open interest rebuilt from positions equals Perpl's figure">OI check ${s.oi_checks.passed}/${s.oi_checks.total} ${ok(s.oi_checks.passed, s.oi_checks.total)}</span>
       <span title="Our liquidation formula equals Perpl's liquidation prices">Formula ${s.formula_check.matched}/${s.formula_check.total} ${ok(s.formula_check.matched, s.formula_check.total)}</span>`;
+    const b = $("#stalebanner");
+    b.hidden = s.age_seconds <= 180;
+    b.textContent = `These numbers are ${s.age_seconds >= 3600 ? (s.age_seconds / 3600).toFixed(1) + " hours" : Math.round(s.age_seconds / 60) + " minutes"} old. The data feed has paused, usually because the computer went to sleep or the Monad RPC is unreachable. It resumes by itself within about a minute of coming back; leave this page open.`;
   } catch (e) { $("#status").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 }
 

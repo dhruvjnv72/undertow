@@ -77,7 +77,7 @@ S = [Paragraph("Undertow - final report and your to-do list", H1),
             [cell("Envio indexer"), cell("Built and tested end to end, but the public RPCs rate-limit it, so it holds only a small recent window")],
             [cell("Logo, README, architecture, deploy guide, video scripts, submission checklist"), cell("Done (in docs/)")],
             [cell("Code in a local git repository"), cell("Committed locally. Not pushed anywhere")],
-            [cell("Docker image for hosting"), cell("Written but not yet seen running (Part 2)")]],
+            [cell("Docker image for hosting"), cell("Builds and starts; data refresh not provable on my network (Part 2)")]],
            [86 * mm, 88 * mm]),
      Paragraph("Part 1: how the numbers were verified", H1),
      Paragraph("Each check compares our value with Perpl's own public API (an independent source) or with Perpl's own SDK. They can be rerun with "
@@ -111,9 +111,9 @@ S += bullets([
     "(for example Alchemy, which is also a hackathon sponsor) is the real fix.",
     "<b>The Envio indexer cannot backfill on public RPCs.</b> It stalls on rate limits after a few hundred blocks. The proper source (HyperSync) needs a free Envio token, "
     "which means creating an account, something I cannot do. With the token it can read the full history since launch within minutes.",
-    "<b>Docker image:</b> in one attempt the stage that compiles Perpl's command-line tool finished, then pulling the Python base image timed out on this network. A second build "
-    "on Windows was still compiling after more than 50 minutes when this report was written (it is a heavy Rust build). So I have <b>not seen the finished container run</b>. "
-    "The Dockerfile is simple, but treat it as untested until you build it once (or let your host build it).",
+    "<b>Docker image:</b> it <b>builds</b> (216 MB) and <b>starts</b>: the page loads (HTTP 200), the Perpl command-line tool is inside, and the data API answers 503 until data arrives. "
+    "What I could <b>not</b> prove is the data refresh inside the container: from Docker on this machine every Monad RPC refused the connection (the same blocked path seen from Ubuntu), "
+    "so it never fetched data. On a normal host with a working RPC it should; confirm it once after deploying.",
     "<b>Bot on testnet:</b> needs a funded wallet (below). Nothing about order placement, cancelling or fills has run on any chain.",
     "<b>Wallet statistics</b> (win rate, profit factor, streaks, holding time) and trade history are not built. The indexer records only the resting side of each trade and no per-wallet "
     "profit and loss, so this needs more indexing work. The Perpl Risk Tool bounty lists these, so that entry is incomplete.",

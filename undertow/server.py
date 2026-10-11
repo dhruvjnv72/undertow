@@ -13,6 +13,7 @@ JSON API (all GET):
     /api/top                          largest accounts with positions
     /api/protocol                     exchange-wide totals and history since collection started
     /api/bot                          paper/live bot state and recent events
+    /api/live?market=1&levels=12     live prices, book, trades and signals (Perpl WebSocket, updated every block)
     /api/preview?perp=1&side=Long&usd=100&lev=5[&price=]   order preview (nothing is sent)
     /api/protect?perp=1&side=bid&min=25000&within=1         is a liquidation-aware rule triggered now
 """
@@ -29,7 +30,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import accounts as registry
-from . import config, envio_client, preview, protect, verify
+from . import config, envio_client, live, preview, protect, signals, verify
 from . import risk
 
 ROOT = Path(__file__).resolve().parent
@@ -266,6 +267,32 @@ def api_protect(q: dict) -> dict:
                        "Checked once per data refresh (about every 45 seconds), not every 0.4 s block."]}
 
 
+LIVE = live.LiveFeed()
+
+
+def api_live_markets() -> dict:
+    return {"markets": LIVE.market_list(), "status": LIVE.status()}
+
+
+def api_live(q: dict) -> dict:
+    """Everything the Live tab shows, from one consistent copy of the live state plus the zone data."""
+    mid = int(_num(q, "market", 1))
+    v = LIVE.view(mid, levels=int(_num(q, "levels", 12)), trades=int(_num(q, "trades", 40)))
+    status = LIVE.status()
+    if v is None:
+        return {"status": status, "error": "No live data yet. The first ticks arrive within a few seconds of the server starting."}
+    snap, snap_age = None, None
+    try:
+        snap = snapshot()
+        snap_age = time.time() - risk.LATEST.stat().st_mtime
+    except FileNotFoundError:
+        pass
+    sig = signals.compute(v, snap, snap_age)
+    keep = ("market_id", "perp_id", "name", "book_live", "oracle", "mark", "last", "mid", "best_bid", "best_ask", "price_24h_ago",
+            "open_interest", "volume_24h_usd", "state_block", "state_ms", "bids", "asks", "book_block", "book_age_ms", "trades", "history")
+    return {"status": status, "server_ms": int(time.time() * 1000), "market": {k: v[k] for k in keep}, "signals": sig}
+
+
 _verify_cache: dict = {"t": 0.0, "out": None}
 
 
@@ -274,7 +301,7 @@ def api_verify() -> dict:
     with _lock:
         if _verify_cache["out"] and time.time() - _verify_cache["t"] < 60:
             return _verify_cache["out"]
-    checks = verify.run_all()
+    checks = verify.run_all(live_feed=LIVE)
     out = {"ran_at": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), "checks": [asdict(c) for c in checks]}
     with _lock:
         _verify_cache.update(t=time.time(), out=out)
@@ -318,7 +345,7 @@ class Handler(BaseHTTPRequestHandler):
                       "/api/radar": lambda: api_radar(q), "/api/cascade": lambda: api_cascade(q),
                       "/api/wallet": lambda: api_wallet(q), "/api/top": lambda: api_top(),
                       "/api/protocol": lambda: api_protocol(), "/api/bot": lambda: api_bot(),
-                      "/api/verify": lambda: api_verify(), "/api/preview": lambda: api_preview(q), "/api/protect": lambda: api_protect(q)}
+                      "/api/verify": lambda: api_verify(), "/api/live": lambda: api_live(q), "/api/live/markets": lambda: api_live_markets(), "/api/preview": lambda: api_preview(q), "/api/protect": lambda: api_protect(q)}
             if u.path in routes:
                 return self._send(200, json.dumps(routes[u.path](), default=lambda o: asdict(o) if is_dataclass(o)
                                                   else str(o)).encode(), "application/json")
@@ -351,6 +378,10 @@ def main() -> None:
                     time.sleep(15)  # back off after an error (connection dropped, rate limit)
                 time.sleep(2)
         threading.Thread(target=loop, daemon=True).start()
+    if LIVE.start():
+        print("Live feed: connecting to Perpl's WebSocket", flush=True)
+    else:
+        print(f"Live feed disabled: {LIVE.last_error}", flush=True)
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     print(f"Undertow dashboard: http://{a.host}:{a.port}  (Ctrl+C to stop)", flush=True)
     try:

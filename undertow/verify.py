@@ -157,17 +157,59 @@ def check_funding(perp_id: int) -> Check:
                  f"indexer {pairs[0][1]} vs REST {pairs[0][2]}")
 
 
+def check_live_feed(feed, market_id: int = 1) -> list[Check]:
+    """The live WebSocket feed against Perpl's REST ticker and against the CHAIN at the same block."""
+    out: list[Check] = []
+    v = feed.view(market_id, levels=5)
+    if not v or not feed.status()["connected"]:
+        return [Check("live feed: connected and receiving", "fail", f"not connected ({feed.status().get('last_error') or 'no data yet'})")]
+    st = feed.status()
+    out.append(Check("live feed: connected and receiving", "pass",
+                     f"{st['msgs_per_second']} messages/s, head block {st['head_block']:,}, last message {st['last_message_age_ms']} ms ago"))
+    # 1) prices vs REST ticker (same source family, fetched a moment apart)
+    mk = _market(market_id)
+    t = rest(f"/market-data/{mk['id']}/ticker")["d"][str(mk["id"])]
+    pd = 10 ** mk["config"]["price_decimals"]
+    live_v = feed.view(market_id, levels=1)
+    diffs = {k: abs(live_v[k] / (t[f] / pd) - 1) * 1e4 for k, f in (("mark", "mrk"), ("oracle", "orl"), ("last", "lst"))}
+    ok = all(d < 5 for d in diffs.values())  # within 5 bps: the two reads are a moment apart and the last price moves every trade
+    out.append(Check("live feed: mark, oracle, last vs REST ticker", "pass" if ok else "fail",
+                     ", ".join(f"{k} {d:.2f} bps apart" for k, d in diffs.items()) + " (two reads a moment apart)"))
+    # 2) book vs the chain at the same block: WS book messages carry the block; read the contract's book at that block
+    hist = list(feed.markets[market_id]["book_hist"])
+    if len(hist) < 8:
+        out.append(Check("live feed: order book vs the chain, same block", "skipped", "not enough book updates collected yet"))
+        return out
+    block = hist[-6][0]  # an update a few blocks old, so the RPC has the block
+    ws = feed.book_at_block(market_id, block)
+    results = {}
+    for off in (0, -1):
+        txt = perpl_cli.run(perpl_cli.global_args() + ["--block", str(block + off), "--perp", str(market_id), "--num-blocks", "1", "show", "book"], timeout=120)
+        ob = parse_cli_book(txt)
+        best_ask = ws[1][0][0]
+        oa = sorted([l for l in ob["levels"] if l[0] >= best_ask - 1e-9])[:10]
+        obid = sorted([l for l in ob["levels"] if l[0] < best_ask - 1e-9], reverse=True)[:10]
+        ident = lambda a, b: sum(1 for x, y in zip(a, b) if abs(x[0] - y[0]) < 1e-9 and abs(x[1] - y[1]) < 1e-9 and x[2] == y[2])
+        results[off] = ident(ws[1], oa) + ident(ws[0], obid)
+    best_off = max(results, key=results.get)
+    total = len(ws[0]) + len(ws[1])
+    out.append(Check("live feed: order book vs the chain, same block", "pass" if results[best_off] == total else "fail",
+                     f"{results[best_off]}/{total} top-10 levels identical in price, size and order count to the contract state read at block "
+                     f"{block + best_off:,} (WS message block {block:,}, offset {best_off}); tried offsets {results}"))
+    return out
+
+
 def check_formula() -> Check:
     f = risk.verify_formula(risk.load_latest())
     return Check("formula: our liquidation price vs Perpl's", "pass" if f.within_tolerance == f.total else "fail",
                  f"{f.within_tolerance}/{f.total} positions match (relative error <= 0.1% or within the 6-decimal print)")
 
 
-def run_all(perp_id: int | None = None) -> list[Check]:
+def run_all(perp_id: int | None = None, live_feed=None) -> list[Check]:
     perp_id = perp_id or config.DEFAULT_PERP
     checks: list[Check] = []
     for fn in (lambda: check_ticker_and_book(perp_id), lambda: [check_volume(perp_id)], lambda: [check_funding(perp_id)],
-               lambda: [check_formula()]):
+               lambda: [check_formula()], lambda: check_live_feed(live_feed) if live_feed is not None else []):
         try:
             checks += fn()
         except Exception as e:  # one failing source must not hide the other checks

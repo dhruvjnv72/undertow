@@ -5,23 +5,31 @@ fully on Monad. Every position on Perpl is public, so Undertow can compute where
 points bunch up, estimate how far a chain reaction could push the price, and warn a trader about other people's liquidations that sit
 between the price and their own.
 
+* **Live**: a terminal-style screen updated every block from Perpl's own public WebSocket (oracle, mark, last, order book, trades), with
+  signals computed against the live mark. Needs `pip install websockets`.
 * **Radar**: liquidation zones, a plain-language warning, a cascade simulator (a labelled worst-case estimate).
 * **Trade**: order preview with liquidation price, zones in your path, fees, funding per day and slippage. It never sends an order.
 * **Markets / Protocol / Wallets / Bot**: market table; exchange-wide numbers (volume, fees, deposits, liquidations via the Envio
   indexer); wallet search with watchlist and compare; the market-making bot's state.
 * **Checks**: `python -m undertow.verify` (or the button on the Protocol tab) compares our numbers with Perpl's own public API.
 
-The app uses only the Python standard library. Optional: `reportlab` and `pymupdf` (the PDFs in `docs/`), `eth-account` (`undertow/testnet.py`).
+The app uses only the Python standard library, except the Live tab which needs `websockets` (`pip install -r requirements.txt`). Optional: `reportlab` and `pymupdf` (the PDFs in `docs/`), `eth-account` (`undertow/testnet.py`).
 Needs `perpl-cli` (`cargo install perpl-cli`).
 
     start_dashboard.bat                      # Windows: double-click; starts the dashboard and opens the browser
     python -m undertow.server --refresh      # same thing from a terminal; data refreshes itself every ~45 s
     python -m undertow.verify                # correctness checks against Perpl's REST API
     python -m undertow.bot --paper           # paper bot (reads the data the server keeps fresh)
-    python -m unittest discover -s tests     # 65 tests
+    python -m unittest discover -s tests     # 79 tests
 
 If the default Monad RPC is slow, rate-limited or unreachable, set `UNDERTOW_RPC` (for example `https://rpc2.monad.xyz`, or your own
 Alchemy URL): `$env:UNDERTOW_RPC="https://rpc2.monad.xyz"`. On the machine this was built on, `rpc.monad.xyz` was unreachable at times.
+
+## Live data vs snapshot data
+
+Prices, the order book and trades on the **Live** tab are pushed by Perpl every block (about 0.4 s). Liquidation zones come from the positions
+snapshot (refreshed every ~45 s) and are re-measured against the live mark on every update, so a zone's distance is always live but a
+position opened a few seconds ago is not yet in it.
 
 ## Keeping the data fresh
 

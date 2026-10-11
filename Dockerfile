@@ -11,6 +11,8 @@ FROM python:3.13-slim-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
 COPY --from=cli /usr/local/cargo/bin/perpl-cli /usr/local/bin/perpl-cli
 WORKDIR /app
+# Live tab (Perpl WebSocket feed). Without it the rest of the dashboard still works.
+RUN pip install --no-cache-dir websockets
 COPY undertow ./undertow
 COPY abi ./abi
 ENV PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8

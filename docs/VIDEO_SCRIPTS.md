@@ -5,6 +5,10 @@ in the top right should be under a minute). Speak plainly. Each script lists wha
 
 Rules for all videos: say only what the product does today (see "Things never to claim" in `SUBMISSION_CHECKLIST.md`).
 
+## 0. Open every video on the Live tab
+
+It is the most convincing screen: it moves. Say: "This is Perpl's own live feed: prices, order book and trades arrive every block. Our zones are re-measured against the live mark every half second." Do not call alerts predictions; they are rule-based risk flags.
+
 ## 1. Track 1 technical demo (up to 3:00)
 
 | Time | Show | Say |

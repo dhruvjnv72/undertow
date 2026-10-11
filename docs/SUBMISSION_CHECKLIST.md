@@ -61,6 +61,11 @@ Note: the roadmap listed "whether testnet activity counts" as still to confirm w
 Then share the repository with metropolis@hackathon.monad.xyz in GitHub's settings. The assistant has created a local git
 commit but has not pushed anything anywhere.
 
+## Live terminal
+
+Done: `Live` tab fed by Perpl's WebSocket. Verified against Perpl's REST ticker and against the chain at the same block (see the Live report).
+Limits: zones use a positions snapshot up to about a minute old; only the 7 busiest markets stream a live book; alert thresholds are heuristics.
+
 ## Things never to claim (not true today)
 
 * That the bot trades live on Monad mainnet.

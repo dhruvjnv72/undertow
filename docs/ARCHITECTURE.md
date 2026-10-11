@@ -25,6 +25,10 @@ other people's liquidations that sit between the price and their own.
                  |
         +--------+-------------------+
         v                            v
+  undertow/live.py (Perpl WebSocket: oracle, mark, last, L2 book, trades, every block)
+  undertow/signals.py (live mark x snapshot positions -> zones, alerts, flow, momentum)
+        |
+        v
   undertow/server.py            undertow/bot.py
   dashboard (web/index.html)    market-making bot: paper mode, locked live mode
   Radar | Trade | Markets | Protocol | Wallets | Bot
@@ -36,7 +40,8 @@ other people's liquidations that sit between the price and their own.
    indexer in `indexer/`. A full snapshot of every account, position and resting order takes 35 to 70 seconds on a public RPC.
 2. **Risk engine**: `risk.py`. Liquidation formula taken from the official SDK; zones; cascade simulator (a worst-case estimate
    with stated assumptions); the Radar sentence.
-3. **Screens**: `server.py` plus `web/index.html` (Radar, Trade, Markets, Protocol, Wallets, Bot).
+3. **Screens**: `server.py` plus `web/index.html` (Live, Radar, Trade, Markets, Protocol, Wallets, Bot). `live.py` keeps a WebSocket
+   connection to Perpl's public market-data feed; `signals.py` combines it with the positions snapshot.
 4. **Trading**: `preview.py` shows the risk of a trade before it is placed. The page does not send orders.
 5. **Protection**: `bot.py` (post-only market maker with hard limits, widens or pulls near big zones) and `protect.py`
    (liquidation-aware order rules).
@@ -49,6 +54,9 @@ other people's liquidations that sit between the price and their own.
 * Our liquidation formula equals Perpl's own liquidation and bankruptcy prices for every open position.
 * Hourly volume and funding events from the indexer are compared with Perpl's candles and funding series once the indexer has
   covered whole hours (see the report for the current result).
+
+* The live feed: the order book kept from WebSocket messages equals the contract's book at the same block (top 10 levels per side,
+  identical in price, size and order count); mark, oracle and last equal Perpl's REST ticker.
 
 ## Honest limits
 

@@ -48,13 +48,48 @@
   .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
   .err { color: var(--long); }
+  .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-variant-numeric: tabular-nums; }
+  #tab-live { max-width: 1500px; margin: 0 auto; }
+  .tbar { display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: flex-end; }
+  .tbar .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+  .tbar .v { font-size: 15px; font-weight: 600; }
+  #l-mark { font-size: 30px; font-weight: 700; line-height: 1.1; transition: color .25s; }
+  .up { color: var(--short); } .dn { color: var(--long); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel2); }
+  .dotl { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .pill.on .dotl { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: pulse 1.2s infinite; }
+  .pill.off .dotl { background: var(--long); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .lgrid { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.1fr) minmax(340px, 1.2fr); gap: 14px; margin-top: 14px; }
+  @media (max-width: 1100px) { .lgrid { grid-template-columns: 1fr; } }
+  .lcard { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .lcard h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 600; }
+  .ladder { width: 100%; font-size: 12.5px; }
+  .ladder .r { position: relative; display: grid; grid-template-columns: 1.1fr .9fr .9fr; padding: 1.5px 6px; }
+  .ladder .r > span { position: relative; z-index: 1; text-align: right; }
+  .ladder .r > span:first-child { text-align: left; }
+  .ladder .bar { position: absolute; top: 0; bottom: 0; right: 0; opacity: .22; z-index: 0; }
+  .ladder .mid { padding: 5px 6px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 3px 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .tape { font-size: 12.5px; max-height: 250px; overflow: hidden; }
+  .tape .t { display: grid; grid-template-columns: .8fr .9fr 1fr 1fr; padding: 1px 4px; }
+  .tape .t span { text-align: right; } .tape .t span:first-child { text-align: left; }
+  .tape .big { font-weight: 700; background: rgba(91,140,255,.12); }
+  .alerts { max-height: 190px; overflow: hidden; font-size: 12.5px; }
+  .alerts .a { padding: 4px 8px; border-left: 3px solid var(--line); margin-bottom: 4px; background: var(--panel2); border-radius: 0 6px 6px 0; }
+  .alerts .a.alert { border-color: var(--long); } .alerts .a.warn { border-color: var(--warn); } .alerts .a.info { border-color: var(--accent); }
+  .alerts .a time { color: var(--muted); margin-right: 8px; }
+  .m2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px; margin: 6px 0; }
+  .m2 .k { color: var(--muted); font-size: 10.5px; text-transform: uppercase; } .m2 .v { font-size: 14px; font-weight: 600; }
+  .split { height: 7px; border-radius: 4px; background: var(--long); overflow: hidden; margin: 3px 0 2px; } .split > i { display: block; height: 100%; background: var(--short); }
+  .lz td, .lz th { padding: 3px 6px; font-size: 12px; }
 </style>
 </head>
 <body>
 <header>
   <div class="brand">Undertow<small>See the pull before it takes you</small></div>
   <nav>
-    <button data-tab="radar" class="on">Radar</button>
+    <button data-tab="live" class="on">Live</button>
+    <button data-tab="radar">Radar</button>
     <button data-tab="trade">Trade</button>
     <button data-tab="markets">Markets</button>
     <button data-tab="protocol">Protocol</button>
@@ -66,7 +101,38 @@
 
 <main>
 <div id="stalebanner" class="warn" hidden style="margin-bottom:16px"></div>
-<section id="tab-radar">
+<section id="tab-live">
+  <div class="lcard">
+    <div class="tbar mono">
+      <div><div class="k">Market</div><select id="l-market" style="padding:3px 6px"></select></div>
+      <div><div class="k">Mark <span id="l-markage" style="text-transform:none"></span></div><div id="l-mark">–</div></div>
+      <div><div class="k">Oracle</div><div class="v" id="l-oracle">–</div></div>
+      <div><div class="k">Last</div><div class="v" id="l-last">–</div></div>
+      <div><div class="k">Bid / Ask</div><div class="v" id="l-ba">–</div></div>
+      <div><div class="k">Spread</div><div class="v" id="l-spread">–</div></div>
+      <div><div class="k">Mark − oracle</div><div class="v" id="l-basis">–</div></div>
+      <div><div class="k">24h</div><div class="v" id="l-24h">–</div></div>
+      <div><div class="k">Open interest</div><div class="v" id="l-oi">–</div></div>
+      <div><div class="k">24h volume</div><div class="v" id="l-vol">–</div></div>
+      <div style="margin-left:auto;text-align:right"><span class="pill off" id="l-conn"><i class="dotl"></i><span>connecting…</span></span><div class="k" id="l-conn2" style="margin-top:4px"></div></div>
+    </div>
+  </div>
+  <div class="lgrid">
+    <div class="lcard"><h3>Order book (live, every block)</h3><div class="ladder mono" id="l-book"></div></div>
+    <div>
+      <div class="lcard"><h3>Mark vs oracle, last 10 minutes</h3><div id="l-chart"></div></div>
+      <div class="lcard" style="margin-top:14px"><h3>Trades (live tape)</h3><div class="tape mono" id="l-tape"></div></div>
+    </div>
+    <div>
+      <div class="lcard"><h3>Alerts <span class="muted" style="text-transform:none;letter-spacing:0">(our thresholds, not Perpl's)</span></h3><div class="alerts mono" id="l-alerts"></div></div>
+      <div class="lcard" style="margin-top:14px"><h3>Momentum, flow, book</h3><div id="l-metrics"></div></div>
+      <div class="lcard" style="margin-top:14px"><h3>Liquidation zones against the LIVE mark</h3><div class="scroll"><table class="lz mono" id="l-zones"></table></div><div class="muted small" id="l-prox" style="margin-top:6px"></div></div>
+    </div>
+  </div>
+  <div class="muted small" style="margin-top:12px" id="l-foot"></div>
+</section>
+
+<section id="tab-radar" hidden>
   <div class="card">
     <div class="row">
       <label class="muted">Market <select id="perp"></select></label>
@@ -190,7 +256,8 @@ let radar = null, perp = 1, ready = false;
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 function showTab(t) {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
-  ["radar", "trade", "markets", "protocol", "wallet", "bot"].forEach(n => $("#tab-" + n).hidden = n !== t);
+  ["live", "radar", "trade", "markets", "protocol", "wallet", "bot"].forEach(n => $("#tab-" + n).hidden = n !== t);
+  liveActive = t === "live"; if (liveActive) liveTick();
   if (t === "trade") initTrade();
   if (t === "markets") loadMarkets(); if (t === "wallet") { loadTop(); loadCompare(); }
   if (t === "protocol") loadProtocol(); if (t === "bot") loadBot();
@@ -483,6 +550,101 @@ async function runProtect() {
       `<div class="muted"><span class="badge b-low">clear</span>No zone of that size is that close on the exposed side right now.</div>`) +
       `<ul class="assume">${r.limits.map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;
   } catch (e) { $("#p-result").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+/* ---------- live terminal ---------- */
+let liveActive = true, liveBusy = false, liveMarket = 1, liveReady = false, liveLast = null, alertLog = [], seenAlerts = new Set();
+const pf = (v, d) => v == null || isNaN(v) ? "–" : Number(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+function dp(v) { return v >= 1000 ? 1 : v >= 100 ? 2 : v >= 10 ? 3 : v >= 1 ? 4 : v >= .1 ? 5 : 6; }
+const hms = ms => new Date(ms).toTimeString().slice(0, 8);
+async function liveInit() {
+  const r = await api("/api/live/markets");
+  $("#l-market").innerHTML = r.markets.filter(m => m.live_book).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  if ($("#l-market").querySelector(`option[value="${liveMarket}"]`)) $("#l-market").value = liveMarket; else liveMarket = +$("#l-market").value;
+  $("#l-market").onchange = () => { liveMarket = +$("#l-market").value; liveLast = null; alertLog = []; seenAlerts = new Set(); };
+  liveReady = true;
+}
+async function liveTick() {
+  if (!liveActive || liveBusy || document.hidden) return;
+  liveBusy = true;
+  try {
+    if (!liveReady) await liveInit();
+    const d = await api(`/api/live?market=${liveMarket}&levels=12&trades=30`);
+    renderLive(d);
+  } catch (e) {
+    $("#l-conn").className = "pill off"; $("#l-conn span").textContent = "no data";
+    $("#l-conn2").textContent = e.message;
+  }
+  liveBusy = false;
+}
+setInterval(liveTick, 500);
+
+function flashClass(now, prev) { return prev == null || now === prev ? "" : now > prev ? "up" : "dn"; }
+function renderLive(d) {
+  const st = d.status, m = d.market, g = d.signals, dc = dp(m.mark);
+  const stalled = !st.connected || (st.last_message_age_ms != null && st.last_message_age_ms > 3000);
+  $("#l-conn").className = "pill " + (stalled ? "off" : "on");
+  $("#l-conn span").textContent = stalled ? "FEED STALLED / RECONNECTING" : "LIVE";
+  const tickAge = d.server_ms - m.state_ms;
+  $("#l-conn2").textContent = `${st.msgs_per_second}/s msgs · head block ${st.head_block.toLocaleString()} · last msg ${st.last_message_age_ms ?? "–"} ms ago`;
+  $("#l-markage").textContent = m.state_ms ? "(Perpl updated it " + Math.max(0, (d.server_ms - m.state_ms) / 1000).toFixed(1) + " s ago)" : "";
+  const cls = flashClass(m.mark, liveLast && liveLast.mark);
+  $("#l-mark").textContent = pf(m.mark, dc); if (cls) $("#l-mark").className = cls; else if (!liveLast) $("#l-mark").className = "";
+  $("#l-oracle").textContent = pf(m.oracle, dc); $("#l-last").textContent = pf(m.last, dc);
+  $("#l-ba").textContent = `${pf(m.best_bid, dc)} / ${pf(m.best_ask, dc)}`;
+  $("#l-spread").textContent = g.spread_bps == null ? "–" : g.spread_bps.toFixed(2) + " bps";
+  const bs = g.basis_bps; $("#l-basis").textContent = bs == null ? "–" : (bs >= 0 ? "+" : "") + bs.toFixed(1) + " bps"; $("#l-basis").className = "v " + (bs > 0 ? "up" : bs < 0 ? "dn" : "");
+  const c24 = g.change_24h_pct; $("#l-24h").textContent = c24 == null ? "–" : pct(c24, 2); $("#l-24h").className = "v " + (c24 >= 0 ? "up" : "dn");
+  $("#l-oi").textContent = `${pf(m.open_interest, 3)} (${money(m.open_interest * m.mark)})`; $("#l-vol").textContent = money(m.volume_24h_usd);
+
+  // order book ladder
+  const mx = Math.max(...m.bids.map(x => x.cum), ...m.asks.map(x => x.cum), 1e-9), sz = m.mark > 1000 ? 5 : m.mark > 1 ? 3 : 0;
+  const row = (x, side) => `<div class="r"><div class="bar" style="width:${(x.cum / mx * 100).toFixed(1)}%;background:var(--${side === "ask" ? "long" : "short"})"></div><span class="${side === "ask" ? "dn" : "up"}">${pf(x.price, dc)}</span><span>${pf(x.size, sz)}</span><span>${pf(x.cum, sz)}</span></div>`;
+  const spr = m.best_ask && m.best_bid ? m.best_ask - m.best_bid : 0;
+  $("#l-book").innerHTML = `<div class="r muted" style="font-size:11px"><span>Price</span><span>Size</span><span>Total</span></div>` + [...m.asks].reverse().map(x => row(x, "ask")).join("") +
+    `<div class="mid"><span>spread ${pf(spr, dc)}</span><span>book ${m.book_age_ms == null ? "–" : m.book_age_ms + " ms"} old · block ${m.book_block.toLocaleString()}</span></div>` + m.bids.map(x => row(x, "bid")).join("");
+
+  // chart
+  const h = m.history; if (h.length > 2) {
+    const W = 520, H = 150, L = 6, R = 52, T = 8, B = 16, t0 = h[0][0], t1 = h[h.length - 1][0] || t0 + 1;
+    const ys = h.flatMap(p => [p[1], p[2]]).filter(v => v > 0), lo = Math.min(...ys), hi = Math.max(...ys), pad = (hi - lo) * .15 || hi * 1e-4;
+    const x = t => L + (t - t0) / ((t1 - t0) || 1) * (W - L - R), y = v => H - B - (v - (lo - pad)) / ((hi - lo) + 2 * pad) * (H - B - T);
+    const path = i => h.map((p, k) => (k ? "L" : "M") + x(p[0]).toFixed(1) + "," + y(p[i]).toFixed(1)).join(" ");
+    $("#l-chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%"><path d="${path(2)}" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="3 3"/><path d="${path(1)}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>` +
+      [0, .5, 1].map(f => { const v = lo - pad + ((hi - lo) + 2 * pad) * f; return `<text x="${W - R + 4}" y="${y(v) + 3}">${pf(v, dc)}</text>`; }).join("") +
+      `<text x="${L}" y="${H - 3}">${Math.round((t1 - t0) / 60 * 10) / 10} min ago</text><text x="${W - R}" y="${H - 3}" text-anchor="end">now</text></svg><div class="legend"><span><i class="dot" style="background:var(--accent)"></i>mark</span><span><i class="dot" style="background:var(--muted)"></i>oracle</span></div>`;
+  }
+
+  // tape
+  const big = Math.max(5000, (g.flow_60s.largest_usd || 0) * .8);
+  $("#l-tape").innerHTML = `<div class="t muted" style="font-size:11px"><span>Time</span><span>Side</span><span>Size</span><span>Price</span></div>` + m.trades.map(t => {
+    const n = t.price * t.size;
+    return `<div class="t ${n >= big ? "big" : ""}"><span>${hms(t.t)}</span><span class="${t.side === "buy" ? "up" : "dn"}">${t.side}</span><span>${pf(t.size, sz)}</span><span>${pf(t.price, dc)}</span></div>`;
+  }).join("");
+
+  // alerts: log a new entry when a key first appears
+  const keys = new Set(g.alerts.map(a => a.key));
+  g.alerts.forEach(a => { if (!seenAlerts.has(a.key)) { seenAlerts.add(a.key); alertLog.unshift({ t: Date.now(), ...a }); } });
+  [...seenAlerts].forEach(k => { if (!keys.has(k)) seenAlerts.delete(k); });
+  alertLog = alertLog.slice(0, 40);
+  const live = g.alerts.map(a => `<div class="a ${a.level}"><b>NOW</b> ${esc(a.text)}</div>`).join("");
+  const hist = alertLog.filter(a => !keys.has(a.key)).slice(0, 6).map(a => `<div class="a ${a.level}" style="opacity:.55"><time>${hms(a.t)}</time>${esc(a.text)}</div>`).join("");
+  $("#l-alerts").innerHTML = (live + hist) || `<div class="muted">No alerts. Nothing unusual right now.</div>`;
+
+  // metrics
+  const mo = g.momentum_pct, f = g.flow_60s, b = g.book;
+  const mv = v => v == null ? `<span class="muted">…</span>` : `<span class="${v >= 0 ? "up" : "dn"}">${v >= 0 ? "+" : ""}${v.toFixed(3)}%</span>`;
+  $("#l-metrics").innerHTML = `<div class="m2 mono"><div><div class="k">Mark 10 s</div><div class="v">${mv(mo["10s"])}</div></div><div><div class="k">Mark 60 s</div><div class="v">${mv(mo["60s"])}</div></div><div><div class="k">Mark 5 min</div><div class="v">${mv(mo["300s"])}</div></div></div>` +
+    `<div class="small muted">Trades, last 60 s: ${f.trades} · buy ${money(f.buy_usd)} / sell ${money(f.sell_usd)} · largest ${money(f.largest_usd)}</div><div class="split"><i style="width:${f.buy_share == null ? 50 : f.buy_share * 100}%"></i></div>` +
+    `<div class="small muted">Book within 0.5%: bids ${money(b.bid_value_0_5pct)} / asks ${money(b.ask_value_0_5pct)}</div><div class="split"><i style="width:${b.bid_share == null ? 50 : b.bid_share * 100}%"></i></div>`;
+
+  // zones against live mark
+  $("#l-zones").innerHTML = g.zones.length ? `<tr><th class="l">Zone</th><th>Price range</th><th>Away</th><th>Value</th><th>Cascade risk</th><th>If hit: ends near</th></tr>` + g.zones.map(z =>
+    `<tr><td class="l ${z.side === "Long" ? "dn" : "up"}">${z.side}s</td><td>${pf(z.low, dc)}–${pf(z.high, dc)}</td><td>${z.distance_pct.toFixed(2)}%</td><td>${money(z.notional)}${z.top_account_share > .6 && z.positions > 1 ? " ·1 acct" : ""}</td><td><span class="badge b-${z.risk}">${z.risk}</span></td><td>${pf(z.cascade_end, dc)}${z.cascade_book_runs_out ? " (book out)" : ""}</td></tr>`).join("") : `<tr><td class="muted">No sizeable zones near the price (or no positions snapshot yet).</td></tr>`;
+  const px = g.liq_proximity["0.5%"], px1 = g.liq_proximity["1%"];
+  $("#l-prox").textContent = px ? `Positions within 0.5% of liquidation: longs ${px.long_count} (${money(px.long_usd)}), shorts ${px.short_count} (${money(px.short_usd)}) · within 1%: longs ${money(px1.long_usd)}, shorts ${money(px1.short_usd)}` : "";
+  $("#l-foot").innerHTML = `Prices, order book and trades: Perpl's live WebSocket feed, pushed every block, shown at most 0.5 s after they arrive. Liquidation zones: positions snapshot ${g.snapshot_age_s == null ? "not available" : Math.round(g.snapshot_age_s) + " s old"}, re-measured against the live mark on every update. Positions opened or closed since the snapshot are not reflected. Alert thresholds are heuristics. Only the busiest 7 markets stream a live book.`;
+  liveLast = { mark: m.mark };
 }
 
 (async () => { await loadStatus(); try { await initMarkets(); await loadRadar(); } catch (e) { $("#headline").innerHTML = `<span class="err">${esc(e.message)}</span>`; } setInterval(loadStatus, 5000); setInterval(() => { if (!$("#tab-radar").hidden) loadRadar(); }, 30000); })();

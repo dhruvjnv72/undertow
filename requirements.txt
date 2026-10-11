@@ -1,0 +1,6 @@
+# Needed for the Live tab (Perpl's WebSocket feed). The rest of the dashboard uses only the standard library.
+websockets>=13
+# Optional: PDFs in docs/ (reportlab, pymupdf) and undertow/testnet.py (eth-account)
+# reportlab
+# pymupdf
+# eth-account

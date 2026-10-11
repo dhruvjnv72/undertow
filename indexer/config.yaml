@@ -1,0 +1,50 @@
+# Undertow indexer: records Perpl exchange events on Monad (mainnet and testnet) for the Protocol view,
+# wallet history and liquidation history. Collateral (AUSD) has 6 decimals; prices and sizes use per-market decimals (src/perps.ts).
+#
+# DATA SOURCE
+#   Default here: the public Monad RPC ("for: sync"), starting from a RECENT block. No account or token needed, but RPC is slow,
+#   so the history only reaches back to start_block.
+#   Full history from Perpl's deployment (mainnet block 54773010, testnet block 62953): remove the `rpc:` entries, set a free
+#   ENVIO_API_TOKEN (https://envio.dev/app/api-tokens) in indexer/.env, and set the start_block values below to the deployment blocks.
+name: undertow-perpl
+schema: schema.graphql
+
+contracts:
+  - name: Exchange
+    abi_file_path: ../abi/Exchange.json
+    handler: src/handlers/exchange.ts
+    events:
+      - event: MakerOrderFilledV2
+      - event: PositionLiquidated
+      - event: PositionDeleveragedV2
+      - event: CollateralDeposit
+      - event: CollateralWithdrawal
+      - event: AccountCreated
+      - event: FundingEventCompleted
+
+chains:
+  - id: 143 # Monad mainnet
+    start_block: 112490000 # about 5 hours before 2026-10-11 22:30 IST (0.4 s blocks); Perpl was deployed at 54773010
+    rpc:
+      # From WSL on this machine only rpc-mainnet.monadinfra.com (and the testnet RPC) were reachable; rpc.monad.xyz, rpc1 and rpc2
+      # timed out from WSL although Windows reached them. It allows 100-block log queries (rpc2.monad.xyz allows 1,000).
+      - url: https://rpc-mainnet.monadinfra.com
+        for: sync
+        initial_block_interval: 100
+        interval_ceiling: 100
+    contracts:
+      - name: Exchange
+        address: "0x34B6552d57a35a1D042CcAe1951BD1C370112a6F"
+
+# Testnet (chain 10143) is supported by the handlers (src/perps.ts has its markets). To index it too, add this under `chains:`
+# (it doubles the load on the public RPC, which rate-limits at 15 requests per second):
+#  - id: 10143 # Monad testnet
+#    start_block: 69640000 # recent; the testnet exchange was deployed at 62953
+#    rpc:
+#      - url: https://testnet-rpc.monad.xyz
+#        for: sync
+#        initial_block_interval: 100
+#        interval_ceiling: 100
+#    contracts:
+#      - name: Exchange
+#        address: "0x1964C32f0bE608E7D29302AFF5E61268E72080cc"

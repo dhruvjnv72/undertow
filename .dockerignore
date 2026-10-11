@@ -1,0 +1,9 @@
+data/
+indexer/node_modules/
+indexer/.envio/
+.git/
+__pycache__/
+*.pyc
+*.pdf
+docs/
+tests/

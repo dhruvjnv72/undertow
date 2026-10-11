@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Undertow</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJVbmRlcnRvdyBsb2dvIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwNCIgZmlsbD0iIzE2MWIyMiIvPgogIDxyZWN0IHg9IjEyIiB5PSIxMiIgd2lkdGg9IjQ4OCIgaGVpZ2h0PSI0ODgiIHJ4PSI5NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmEzMjNkIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8IS0tIHN1cmZhY2U6IHRoZSBwcmljZSAtLT4KICA8cGF0aCBkPSJNNjQgMTk2IEMgMTIwIDE2MCwgMTY4IDE2MCwgMjI0IDE5NiBTIDMyOCAyMzIsIDM4NCAxOTYgUyA0MzIgMTY4LCA0NDggMTcyIiBmaWxsPSJub25lIiBzdHJva2U9IiM1YjhjZmYiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik02NCAyMzYgQyAxMjAgMjA0LCAxNjggMjA0LCAyMjQgMjM2IFMgMzI4IDI2OCwgMzg0IDIzNiBTIDQzMiAyMTIsIDQ0OCAyMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNmYjhhNSIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjgiLz4KICA8IS0tIHRoZSBwdWxsIHVuZGVybmVhdGg6IGxpcXVpZGF0aW9uIHpvbmVzLCB0YWxsZXN0IGluIHRoZSBtaWRkbGUgLS0+CiAgPHJlY3QgeD0iMTM2IiB5PSIyOTAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI2MCIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIiBvcGFjaXR5PSIwLjYiLz4KICA8cmVjdCB4PSIyMzQiIHk9IjI5MCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjExNiIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIi8+CiAgPHJlY3QgeD0iMzMyIiB5PSIyOTAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI4MiIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIiBvcGFjaXR5PSIwLjgiLz4KICA8IS0tIHRoZSBwdWxsIGFycm93IC0tPgogIDxwYXRoIGQ9Ik0yNTYgNDUwIEwgMjIyIDQxNCBIIDI5MCBaIiBmaWxsPSIjZTZlZGYzIi8+Cjwvc3ZnPgo=">
+<style>
+  :root {
+    --bg: #0e1117; --panel: #161b22; --panel2: #1c232d; --line: #2a323d; --text: #e6edf3; --muted: #8b949e;
+    --accent: #5b8cff; --long: #e5736b; --short: #3fb8a5; --warn: #e3b341; --ok: #3fb950;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  .brand { font-weight: 700; font-size: 18px; letter-spacing: .3px; }
+  .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; }
+  nav { display: flex; gap: 4px; }
+  nav button { background: none; border: 0; color: var(--muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; font: inherit; }
+  nav button.on { background: var(--panel2); color: var(--text); }
+  #status { margin-left: auto; color: var(--muted); font-size: 12px; display: flex; gap: 14px; flex-wrap: wrap; }
+  #status b { color: var(--text); font-weight: 600; }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 60px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  select, input[type=text] { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; }
+  input[type=text] { min-width: 340px; flex: 1; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  button.go { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; font: inherit; }
+  .headline { font-size: 18px; line-height: 1.4; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-right: 8px; }
+  .b-low { background: #12301c; color: var(--ok); } .b-medium { background: #3a2f10; color: var(--warn); }
+  .b-high { background: #3d1a18; color: var(--long); } .b-none { background: var(--panel2); color: var(--muted); }
+  .muted { color: var(--muted); } .small { font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child, th.l, td.l { text-align: left; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel2); }
+  .long { color: var(--long); } .short { color: var(--short); } .pos { color: var(--ok); } .neg { color: var(--long); }
+  .scroll { overflow-x: auto; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } input[type=text] { min-width: 0; } }
+  .warn { background: #3a2f10; border: 1px solid #5a4a18; color: var(--warn); border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 13px; }
+  ul.assume { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  .err { color: var(--long); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Undertow<small>See the pull before it takes you</small></div>
+  <nav>
+    <button data-tab="radar" class="on">Radar</button>
+    <button data-tab="trade">Trade</button>
+    <button data-tab="markets">Markets</button>
+    <button data-tab="protocol">Protocol</button>
+    <button data-tab="wallet">Wallets</button>
+    <button data-tab="bot">Bot</button>
+  </nav>
+  <div id="status">loading…</div>
+</header>
+
+<main>
+<section id="tab-radar">
+  <div class="card">
+    <div class="row">
+      <label class="muted">Market <select id="perp"></select></label>
+      <label class="muted">Zone width <select id="band"><option value="0.5">0.5%</option><option value="1" selected>1%</option><option value="2">2%</option></select></label>
+      <label class="muted">View <select id="span"><option value="10">±10%</option><option value="20">±20%</option><option value="30" selected>±30%</option></select></label>
+      <span class="muted small" id="prices"></span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="headline" id="headline"></div>
+  </div>
+  <div class="card">
+    <h2>Liquidation zones</h2>
+    <div id="zonechart"></div>
+    <div class="legend"><span><i class="dot" style="background:var(--long)"></i>Longs liquidated if price falls</span>
+      <span><i class="dot" style="background:var(--short)"></i>Shorts liquidated if price rises</span>
+      <span>Bar height = full position value being closed</span></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Cascade simulator</h2>
+      <div class="muted small">If the price moves to…</div>
+      <div class="row" style="margin:6px 0"><input type="range" id="move" min="-30" max="30" step="0.5" value="-5"><b id="moveval" style="min-width:150px;text-align:right"></b></div>
+      <div class="row small muted">
+        <label>Share of liquidations hitting the order book
+          <select id="share"><option value="1">100% (worst case)</option><option value="0.5">50%</option><option value="0.25">25%</option></select></label>
+        <label><input type="checkbox" id="fb" checked> price follows the book (stress)</label>
+      </div>
+      <div id="casc" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>Resting orders (cumulative value)</h2>
+      <div id="depthchart"></div>
+      <div class="legend"><span><i class="dot" style="background:var(--short)"></i>Buy orders</span><span><i class="dot" style="background:var(--long)"></i>Sell orders</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Biggest zones</h2>
+    <div class="scroll"><table id="zonetable"></table></div>
+  </div>
+</section>
+
+<section id="tab-trade" hidden>
+  <div class="card">
+    <h2>Order preview: see the risk before you trade</h2>
+    <div class="row">
+      <label class="muted">Market <select id="t-perp"></select></label>
+      <span><button class="go" id="t-long">Long</button> <button class="go" id="t-short" style="background:var(--panel2)">Short</button></span>
+      <label class="muted">Size (USD) <input type="text" id="t-usd" value="100" style="min-width:90px;width:90px;flex:none"></label>
+      <label class="muted">Limit price <input type="text" id="t-price" placeholder="market" style="min-width:110px;width:110px;flex:none"></label>
+    </div>
+    <div class="row" style="margin-top:10px"><span class="muted small" style="min-width:70px">Leverage</span><input type="range" id="t-lev" min="1" max="15" step="0.5" value="5" style="max-width:420px"><b id="t-levval" style="min-width:50px"></b></div>
+  </div>
+  <div id="t-result"></div>
+  <div class="card">
+    <h2>Liquidation-aware order (rule)</h2>
+    <div class="muted small" style="margin-bottom:8px">Attach a rule to an order, for example “cancel my buy if a zone of $25k or more is within 1% of the price”. Shown here as a live check.</div>
+    <div class="row small muted">
+      <label>Order <select id="p-side"><option value="bid">buy (bid)</option><option value="ask">sell (ask)</option></select></label>
+      <label>Zone at least $ <input type="text" id="p-min" value="25000" style="min-width:90px;width:90px;flex:none"></label>
+      <label>within % of price <input type="text" id="p-within" value="1" style="min-width:60px;width:60px;flex:none"></label>
+    </div>
+    <div id="p-result" style="margin-top:10px"></div>
+  </div>
+  <div class="card"><button class="go" disabled style="opacity:.5;cursor:not-allowed">Place order</button>
+    <span class="muted small" style="margin-left:10px">Placing orders from this page is not built. The bot and perpl-cli place orders; this page shows the risk before you do.</span></div>
+</section>
+
+<section id="tab-markets" hidden>
+  <div class="card"><h2>All markets</h2><div class="scroll"><table id="markettable"></table></div></div>
+</section>
+
+<section id="tab-protocol" hidden>
+  <div class="card"><div class="row" id="protocolcards"></div></div>
+  <div class="card" id="envio-card" hidden>
+    <h2>From the Envio indexer</h2>
+    <div class="warn" id="envionote" style="margin:0 0 12px"></div>
+    <div class="row" id="enviocards"></div>
+    <div style="margin-top:14px"><div class="muted small">Daily trading volume, last 60 days</div><div id="volchart"></div></div>
+    <div style="margin-top:14px"><h2>Recent liquidations</h2><div class="scroll"><table id="liqtable"></table></div></div>
+  </div>
+  <div class="card"><h2>Total open interest over time</h2><div id="oichart"></div><div class="muted small" id="oinote"></div></div>
+  <div class="card"><h2>Markets: open interest, positions and collateral</h2><div class="scroll"><table id="protocoltable"></table></div></div>
+  <div class="card muted small" id="protocolmissing"></div>
+</section>
+
+<section id="tab-bot" hidden>
+  <div class="card" id="botcard">loading…</div>
+  <div class="card"><h2>Recent events</h2><div class="scroll"><table id="botevents"></table></div></div>
+</section>
+
+<section id="tab-wallet" hidden>
+  <div class="card">
+    <h2>Wallet explorer</h2>
+    <div class="row"><input type="text" id="q" placeholder="Wallet address (0x…) or account number"><button class="go" id="search">Look up</button></div>
+    <div id="walletresult" style="margin-top:14px"></div>
+  </div>
+  <div class="card"><h2>Watchlist and compare</h2>
+    <div class="muted small" style="margin-bottom:8px">Saved in this browser only. Use “Watch” on a wallet above; saved wallets appear side by side.</div>
+    <div class="scroll"><table id="comparetable"></table></div></div>
+  <div class="card"><h2>Largest accounts by open position value</h2><div class="scroll"><table id="toptable"></table></div></div>
+</section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = async (path) => { const r = await fetch(path); const j = await r.json(); if (!r.ok || j.error) throw new Error(j.error || r.status); return j; };
+const money = v => v == null ? "–" : v >= 1e6 ? "$" + (v/1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v/1e3).toFixed(v >= 1e5 ? 0 : 1) + "k" : "$" + v.toFixed(v < 10 ? 2 : 0);
+const price = v => v == null ? "–" : v >= 1000 ? v.toLocaleString(undefined, {maximumFractionDigits: 1}) : v >= 1 ? v.toFixed(3) : v.toPrecision(3);
+const axis = v => v >= 1000 ? Math.round(v).toLocaleString() : price(v);
+const pct = (v, d = 1) => (v > 0 ? "+" : "") + v.toFixed(d) + "%";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let radar = null, perp = 1, ready = false;
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(t) {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
+  ["radar", "trade", "markets", "protocol", "wallet", "bot"].forEach(n => $("#tab-" + n).hidden = n !== t);
+  if (t === "trade") initTrade();
+  if (t === "markets") loadMarkets(); if (t === "wallet") { loadTop(); loadCompare(); }
+  if (t === "protocol") loadProtocol(); if (t === "bot") loadBot();
+}
+
+/* ---------- status ---------- */
+async function loadStatus() {
+  try {
+    const s = await api("/api/status");
+    const ok = (a, b) => a === b ? '<b style="color:var(--ok)">✓</b>' : '<b style="color:var(--long)">✗</b>';
+    $("#status").innerHTML = `<span>Data <b>${s.age_seconds}s</b> old</span><span>Block <b>${s.block.toLocaleString()}</b></span>
+      <span>${s.positions} positions · ${s.accounts} accounts</span>
+      <span title="Open interest rebuilt from positions equals Perpl's figure">OI check ${s.oi_checks.passed}/${s.oi_checks.total} ${ok(s.oi_checks.passed, s.oi_checks.total)}</span>
+      <span title="Our liquidation formula equals Perpl's liquidation prices">Formula ${s.formula_check.matched}/${s.formula_check.total} ${ok(s.formula_check.matched, s.formula_check.total)}</span>`;
+  } catch (e) { $("#status").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+/* ---------- radar ---------- */
+async function initMarkets() {
+  const m = await api("/api/markets");
+  $("#perp").innerHTML = m.map(x => `<option value="${x.perp_id}">${esc(x.name)}</option>`).join("");
+  perp = m.length ? m[0].perp_id : 1; $("#perp").value = perp;
+}
+$("#perp").onchange = e => { perp = +e.target.value; loadRadar(); };
+$("#band").onchange = $("#span").onchange = () => loadRadar();
+$("#share").onchange = $("#fb").onchange = () => runCascade();
+let deb; $("#move").oninput = () => { updateMoveLabel(); clearTimeout(deb); deb = setTimeout(runCascade, 150); drawZones(); };
+
+function updateMoveLabel() {
+  if (!radar) return; const p = +$("#move").value;
+  $("#moveval").textContent = `${pct(p)}  →  ${price(radar.mark * (1 + p / 100))}`;
+}
+async function loadRadar() {
+  try {
+    radar = await api(`/api/radar?perp=${perp}&band=${$("#band").value}`);
+    $("#prices").textContent = `mark ${price(radar.mark)} · oracle ${price(radar.oracle)} · last ${price(radar.last)} · up to ${radar.max_leverage}x leverage`;
+    $("#headline").innerHTML = `<span class="badge b-${radar.risk}">${radar.risk === "none" ? "no zones" : radar.risk + " risk"}</span>${esc(radar.headline)}`;
+    updateMoveLabel(); drawZones(); drawDepth(); zoneTable(); runCascade();
+  } catch (e) { $("#headline").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+async function runCascade() {
+  if (!radar) return;
+  const p = +$("#move").value, to = radar.mark * (1 + p / 100);
+  try {
+    const c = await api(`/api/cascade?perp=${perp}&to=${to}&share=${$("#share").value}&feedback=${$("#fb").checked ? 1 : 0}`);
+    window.lastCascade = c; drawZones();
+    let h = `<div style="font-size:15px">${esc(c.sentence)}</div>`;
+    if (c.rounds.length) {
+      h += `<div class="scroll"><table style="margin-top:10px"><tr><th class="l">Round</th><th>Price at start</th><th>Positions</th><th>Forced value</th><th>Price after</th></tr>` +
+        c.rounds.map((r, i) => `<tr><td class="l">${i + 1}</td><td>${price(r.trigger_price)}</td><td>${r.positions}</td><td>${money(r.notional)}</td><td>${price(r.end_price)}${r.exhausted ? " <span class='neg'>(book out)</span>" : ""}</td></tr>`).join("") + "</table></div>";
+    }
+    h += `<ul class="assume">${c.assumptions.map(a => `<li>${esc(a)}</li>`).join("")}</ul>`;
+    $("#casc").innerHTML = h;
+  } catch (e) { $("#casc").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+function svgOpen(w, h) { return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img">`; }
+function drawZones() {
+  if (!radar) return;
+  const W = 760, H = 260, L = 48, R = 10, T = 14, B = 26, span = +$("#span").value / 100;
+  const lo = radar.mark * (1 - span), hi = radar.mark * (1 + span);
+  const x = p => L + (p - lo) / (hi - lo) * (W - L - R);
+  const zs = radar.zones.filter(z => z.high > lo && z.low < hi);
+  const ymax = Math.max(1, ...zs.map(z => z.notional)) * 1.1, y = v => H - B - v / ymax * (H - B - T);
+  let s = svgOpen(W, H);
+  for (let i = 1; i <= 4; i++) { const v = ymax * i / 4; s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${money(v)}</text>`; }
+  zs.forEach(z => { const x0 = Math.max(L, x(z.low)), x1 = Math.min(W - R, x(z.high)); s += `<rect x="${x0 + 1}" y="${y(z.notional)}" width="${Math.max(1, x1 - x0 - 2)}" height="${H - B - y(z.notional)}" fill="var(--${z.side === "Long" ? "long" : "short"})" opacity=".9"><title>${z.side} zone ${price(z.low)}–${price(z.high)}: ${money(z.notional)}, ${z.positions} positions, ${z.accounts} accounts</title></rect>`; });
+  for (let i = 0; i <= 6; i++) { const p = lo + (hi - lo) * i / 6; s += `<text x="${x(p)}" y="${H - 8}" text-anchor="middle">${axis(p)}</text>`; }
+  s += `<line x1="${x(radar.mark)}" x2="${x(radar.mark)}" y1="${T}" y2="${H - B}" stroke="var(--text)" stroke-width="1.5"/><text x="${x(radar.mark) + 4}" y="${T + 8}" style="fill:var(--text)">mark</text>`;
+  const t = radar.mark * (1 + (+$("#move").value) / 100);
+  s += `<line x1="${x(t)}" x2="${x(t)}" y1="${T}" y2="${H - B}" stroke="var(--accent)" stroke-dasharray="5 4" stroke-width="1.5"/>`;
+  const c = window.lastCascade;
+  if (c && c.rounds && c.rounds.length && c.final_price > lo && c.final_price < hi && Math.abs(c.final_price - t) > 1e-9)
+    s += `<line x1="${x(c.final_price)}" x2="${x(c.final_price)}" y1="${T}" y2="${H - B}" stroke="var(--warn)" stroke-dasharray="2 3" stroke-width="1.5"/><text x="${x(c.final_price) + 4}" y="${T + 22}" style="fill:var(--warn)">cascade end</text>`;
+  $("#zonechart").innerHTML = s + "</svg>";
+}
+function drawDepth() {
+  const W = 400, H = 220, L = 46, R = 8, T = 10, B = 24, span = radar.mark * 0.15;
+  const lo = radar.mark - span, hi = radar.mark + span, x = p => L + (p - lo) / (hi - lo) * (W - L - R);
+  const bids = radar.bids.filter(b => b[0] >= lo), asks = radar.asks.filter(a => a[0] <= hi);
+  const ymax = Math.max(1, bids.length ? bids[bids.length - 1][1] : 0, asks.length ? asks[asks.length - 1][1] : 0) * 1.08;
+  const y = v => H - B - v / ymax * (H - B - T);
+  const path = (pts, base) => { if (!pts.length) return ""; let d = `M${x(base)},${y(0)}`; pts.forEach((p, i) => { d += ` L${x(p[0])},${y(i ? pts[i - 1][1] : 0)} L${x(p[0])},${y(p[1])}`; }); return d + ` L${x(pts[pts.length - 1][0])},${y(0)} Z`; };
+  let s = svgOpen(W, H);
+  for (let i = 1; i <= 3; i++) { const v = ymax * i / 3; s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 5}" y="${y(v) + 4}" text-anchor="end">${money(v)}</text>`; }
+  s += `<path d="${path(bids, bids.length ? bids[0][0] : radar.mark)}" fill="var(--short)" opacity=".55"/><path d="${path(asks, asks.length ? asks[0][0] : radar.mark)}" fill="var(--long)" opacity=".55"/>`;
+  s += `<line x1="${x(radar.mark)}" x2="${x(radar.mark)}" y1="${T}" y2="${H - B}" stroke="var(--text)"/>`;
+  for (let i = 0; i <= 4; i++) { const p = lo + (hi - lo) * i / 4; s += `<text x="${x(p)}" y="${H - 6}" text-anchor="middle">${axis(p)}</text>`; }
+  $("#depthchart").innerHTML = s + "</svg>";
+}
+function zoneTable() {
+  const zs = [...radar.zones].sort((a, b) => b.notional - a.notional).slice(0, 8);
+  $("#zonetable").innerHTML = `<tr><th class="l">Side</th><th>Price range</th><th>Distance</th><th>Value</th><th>Positions</th><th>Accounts</th><th>Biggest account's share</th></tr>` +
+    zs.map(z => `<tr><td class="l ${z.side === "Long" ? "long" : "short"}">${z.side}s</td><td>${price(z.low)} – ${price(z.high)}</td><td>${pct(z.distance_pct)}</td><td>${money(z.notional)}</td><td>${z.positions}</td><td>${z.accounts}</td><td>${(z.top_account_share * 100).toFixed(0)}%</td></tr>`).join("");
+}
+
+/* ---------- markets ---------- */
+async function loadMarkets() {
+  const m = await api("/api/markets");
+  $("#markettable").innerHTML = `<tr><th class="l">Market</th><th>Mark</th><th>Open interest</th><th>Longs</th><th>Shorts</th><th title="Perpl applies funding about once an hour (every 8,571 blocks)">Funding rate (hourly)</th><th>Max lev.</th><th class="l">Biggest danger</th></tr>` +
+    m.map(r => `<tr class="click" data-p="${r.perp_id}"><td class="l"><b>${esc(r.name)}</b></td><td>${price(r.mark)}</td><td>${money(r.oi_usd)}</td><td>${r.longs}</td><td>${r.shorts}</td><td>${r.funding_rate == null ? "–" : (r.funding_rate * 100).toFixed(4) + "%"}</td><td>${r.max_leverage}x</td><td class="l" style="white-space:normal"><span class="badge b-${r.risk}">${r.risk}</span><span class="muted small">${esc(r.sentence)}</span></td></tr>`).join("");
+  document.querySelectorAll("#markettable tr.click").forEach(tr => tr.onclick = () => { perp = +tr.dataset.p; $("#perp").value = perp; showTab("radar"); loadRadar(); });
+}
+
+/* ---------- wallets ---------- */
+$("#search").onclick = () => lookup($("#q").value);
+$("#q").onkeydown = e => { if (e.key === "Enter") lookup($("#q").value); };
+async function lookup(q) {
+  q = q.trim(); if (!q) return; $("#q").value = q;
+  try {
+    const w = await api("/api/wallet?q=" + encodeURIComponent(q));
+    const watched = getWatch().includes(String(w.account_id));
+    let h = `<div class="row"><div><b>Account #${w.account_id}</b> <span class="muted small">${w.address || ""}</span></div>
+      <button class="go" style="padding:4px 12px;background:${watched ? "var(--panel2)" : "var(--accent)"}" onclick="toggleWatch('${w.account_id}')">${watched ? "★ Watching (remove)" : "☆ Watch"}</button></div>
+      <div class="row small muted" style="margin:6px 0 10px"><span>Balance <b style="color:var(--text)">${money(w.balance)}</b></span><span>Locked ${money(w.locked)}</span><span>Open position value <b style="color:var(--text)">${money(w.total_value)}</b></span><span>Unrealised PnL <b class="${w.total_pnl >= 0 ? "pos" : "neg"}">${money(Math.abs(w.total_pnl))}${w.total_pnl < 0 ? " loss" : ""}</b></span></div>`;
+    if (w.activity) {
+      const a = w.activity;
+      h += `<div class="muted small" style="margin-bottom:8px">Indexer (window${a.window_start ? " from " + a.window_start : ""}; resting-side trades only): ${a.maker_trades} maker trades · ${money(a.maker_volume_usd)} maker volume · ${money(a.deposits_usd)} deposited · ${money(a.withdrawals_usd)} withdrawn · ${a.liquidations.length} liquidation${a.liquidations.length === 1 ? "" : "s"}</div>`;
+    }
+    if (!w.positions.length) h += `<div class="muted">No open positions.</div>`;
+    else {
+      h += `<div class="scroll"><table><tr><th class="l">Market</th><th>Side</th><th>Size</th><th>Entry</th><th>Mark</th><th>Value</th><th>Leverage</th><th>PnL</th><th>Liq. price</th><th>Distance</th><th title="Liquidation price if opened with this leverage">At 5x</th><th>At 3x</th><th title="Estimated at the current funding rate; negative means you receive">Funding / day</th></tr>` +
+        w.positions.map(p => `<tr><td class="l"><b>${esc(p.name)}</b></td><td>${p.side}</td><td>${p.size}</td><td>${price(p.entry_price)}</td><td>${price(p.mark)}</td><td>${money(p.value)}</td><td>${p.leverage ? p.leverage.toFixed(1) + "x" : "–"}</td><td class="${p.total_pnl >= 0 ? "pos" : "neg"}">${p.total_pnl >= 0 ? "+" : "−"}${money(Math.abs(p.total_pnl))}</td><td>${price(p.liq_price)}</td><td>${pct(p.liq_distance_pct)}</td><td class="muted">${price(p.liq_at_5x)}</td><td class="muted">${price(p.liq_at_3x)}</td><td class="${p.funding_per_day_usd > 0 ? "neg" : "pos"}">${p.funding_per_day_usd > 0 ? "pay " : "get "}${money(Math.abs(p.funding_per_day_usd))}</td></tr>`).join("") + "</table></div>";
+      w.positions.filter(p => p.in_path.length).forEach(p => {
+        const z = p.in_path[0], word = p.side === "Long" ? "longs" : "shorts";
+        h += `<div class="warn"><b>${esc(p.name)} ${p.side.toLowerCase()}:</b> your liquidation is ${Math.abs(p.liq_distance_pct).toFixed(1)}% away, but ${money(p.in_path_total)} of other traders' ${word} (in ${p.in_path_count} zone${p.in_path_count > 1 ? "s" : ""} of $5k or more) would be liquidated first. The biggest, ${money(z.notional_others)}, is ${Math.abs(z.distance_pct).toFixed(1)}% away and could push the price on toward you.</div>`;
+      });
+    }
+    $("#walletresult").innerHTML = h;
+  } catch (e) { $("#walletresult").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+async function loadTop() {
+  const t = await api("/api/top");
+  $("#toptable").innerHTML = `<tr><th class="l">Account</th><th class="l">Address</th><th>Position value</th><th>Positions</th><th>Balance</th></tr>` +
+    t.map(a => `<tr class="click" data-q="${a.account_id}"><td class="l">#${a.account_id}</td><td class="l muted">${a.address ? a.address.slice(0, 8) + "…" + a.address.slice(-6) : "–"}</td><td>${money(a.value)}</td><td>${a.positions}</td><td>${money(a.balance)}</td></tr>`).join("");
+  document.querySelectorAll("#toptable tr.click").forEach(tr => tr.onclick = () => lookup(tr.dataset.q));
+}
+
+
+/* ---------- protocol ---------- */
+async function loadProtocol() {
+  try {
+    const d = await api("/api/protocol");
+    const card = (label, val) => `<div style="min-width:170px"><div class="muted small">${label}</div><div style="font-size:22px;font-weight:600">${val}</div></div>`;
+    $("#protocolcards").innerHTML = card("Open interest", money(d.total_oi_usd)) + card("Accounts with positions", d.accounts_with_positions) +
+      card("Open positions", d.positions) + card("Balances of those accounts", money(d.balances_of_those_accounts));
+    drawOI(d.history);
+    drawEnvio(d.envio);
+    $("#oinote").textContent = d.history.length < 2 ? "Collecting… needs at least two refreshes." :
+      `${d.history.length} snapshots since ${d.history_started} UTC. History starts when the refresher was first run; it is not the exchange's full history.`;
+    $("#protocoltable").innerHTML = `<tr><th class="l">Market</th><th>Open interest</th><th>Share</th><th>Longs</th><th>Shorts</th><th>Long collateral</th><th>Short collateral</th><th title="Perpl applies funding about once an hour (every 8,571 blocks)">Funding rate (hourly)</th></tr>` +
+      d.markets.map(m => `<tr><td class="l"><b>${esc(m.name)}</b></td><td>${money(m.oi_usd)}</td><td>${((m.oi_usd || 0) / d.total_oi_usd * 100).toFixed(1)}%</td><td>${m.longs}</td><td>${m.shorts}</td><td>${money(m.long_collateral)}</td><td>${money(m.short_collateral)}</td><td>${m.funding_rate == null ? "–" : (m.funding_rate * 100).toFixed(4) + "%"}</td></tr>`).join("");
+    $("#protocolmissing").innerHTML = `<b>Not available yet:</b> ${d.not_available.join(", ")}. These need the exchange's event history (the Envio indexer), which is not built.`;
+  } catch (e) { $("#protocolcards").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+function drawEnvio(e) {
+  $("#envio-card").hidden = !e;
+  if (!e) return;
+  $("#envionote").textContent = `Indexed window: ${e.earliest_day} to ${e.latest_day} (${e.days_indexed} day${e.days_indexed > 1 ? "s" : ""}). The 7-day, 30-day and all-time figures only cover this window, not the exchange's full history.`;
+  const c = (l, v, sub) => `<div style="min-width:150px"><div class="muted small">${l}</div><div style="font-size:19px;font-weight:600">${v}</div>${sub ? `<div class="muted small">${sub}</div>` : ""}</div>`;
+  $("#enviocards").innerHTML = c("Volume, 24h", money(e.volume_1d), e.latest_day) + c("Volume, 7 days", money(e.volume_7d)) + c("Volume, 30 days", money(e.volume_30d)) +
+    c("Volume, all time", money(e.volume_all), `${e.trades_all.toLocaleString()} trades`) + c("Maker fees, 30 days", money(e.fees_30d)) +
+    c("Liquidations, 30 days", e.liquidations_30d, money(e.liquidated_usd_30d)) + c("Deposits, 30 days", money(e.deposits_30d)) +
+    c("Withdrawals, 30 days", money(e.withdrawals_30d)) + c("Net inflow, 30 days", (e.net_inflow_30d >= 0 ? "+" : "−") + money(Math.abs(e.net_inflow_30d))) +
+    c("Accounts created", e.accounts_created.toLocaleString());
+  const d = e.daily, W = 1000, H = 170, L = 56, R = 8, T = 8, B = 22, mx = Math.max(1, ...d.map(x => x.volumeUsd)) * 1.1, bw = (W - L - R) / Math.max(d.length, 1);
+  let s = svgOpen(W, H);
+  for (let i = 1; i <= 3; i++) { const v = mx * i / 3, y = H - B - v / mx * (H - B - T); s += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${money(v)}</text>`; }
+  d.forEach((x, i) => { const h = x.volumeUsd / mx * (H - B - T); s += `<rect x="${L + i * bw + 1}" y="${H - B - h}" width="${Math.min(60, Math.max(1, bw - 2))}" height="${h}" fill="var(--accent)"><title>${x.date}: ${money(x.volumeUsd)}, ${x.trades} trades</title></rect>`; });
+  if (d.length) s += `<text x="${L}" y="${H - 6}">${esc(d[0].date)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${esc(d[d.length - 1].date)}</text>`;
+  $("#volchart").innerHTML = s + "</svg>";
+  $("#liqtable").innerHTML = e.recent_liquidations.length ? `<tr><th class="l">Time (UTC)</th><th class="l">Market</th><th class="l">Side</th><th>Account</th><th>Liq. price</th><th>Size closed</th><th>Value</th><th class="l">Via</th></tr>` +
+    e.recent_liquidations.map(l => `<tr><td class="l">${new Date(l.timestamp * 1000).toISOString().slice(0, 16).replace("T", " ")}</td><td class="l">${esc(l.perpName)}</td><td class="l">${l.side}</td><td>#${l.accountId}</td><td>${price(l.liqPrice)}</td><td>${l.liquidatedSize}</td><td>${money(l.notionalUsd)}</td><td class="l">${l.onOrderBook ? "order book" : "other"}</td></tr>`).join("") : `<tr><td class="muted l">No liquidations indexed yet.</td></tr>`;
+}
+function drawOI(h) {
+  if (h.length < 2) { $("#oichart").innerHTML = ""; return; }
+  const W = 1000, H = 220, L = 56, R = 12, T = 12, B = 26;
+  const ys = h.map(p => p.oi_usd), lo = Math.min(...ys) * 0.98, hi = Math.max(...ys) * 1.02 || 1;
+  const x = i => L + i / (h.length - 1) * (W - L - R), y = v => H - B - (v - lo) / ((hi - lo) || 1) * (H - B - T);
+  let s = svgOpen(W, H);
+  for (let i = 0; i <= 3; i++) { const v = lo + (hi - lo) * i / 3; s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${money(v)}</text>`; }
+  s += `<path d="${h.map((p, i) => (i ? "L" : "M") + x(i) + "," + y(p.oi_usd)).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  s += `<text x="${L}" y="${H - 6}">${esc(h[0].ts.slice(5, 16))}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${esc(h[h.length - 1].ts.slice(5, 16))}</text>`;
+  $("#oichart").innerHTML = s + "</svg>";
+}
+
+/* ---------- bot ---------- */
+async function loadBot() {
+  try {
+    const b = await api("/api/bot");
+    if (b.running === false) { $("#botcard").innerHTML = `<div class="muted">${esc(b.message)}</div>`; $("#botevents").innerHTML = ""; return; }
+    const st = b.state, d = b.decision || {}, cls = d.action === "quote" ? "b-low" : d.action === "pull" ? "b-medium" : "b-high";
+    const chip = (l, v) => `<div style="min-width:150px"><div class="muted small">${l}</div><div style="font-size:18px;font-weight:600">${v}</div></div>`;
+    $("#botcard").innerHTML = `<div class="row" style="margin-bottom:10px"><span class="badge b-medium" style="text-transform:uppercase">${esc(b.mode)} mode</span>
+      <span class="badge ${cls}">${esc(d.action || "–")}</span><span class="muted small">${esc(d.reason || "")} · updated ${b.age_seconds}s ago</span></div>
+      <div class="row">${chip("Equity", "$" + b.equity.toFixed(2))}${chip("PnL", (b.pnl >= 0 ? "+" : "−") + "$" + Math.abs(b.pnl).toFixed(4))}
+      ${chip("Position", st.position.toFixed(5))}${chip("Fills", st.fills)}${chip("Fees paid", "$" + st.fees.toFixed(4))}${chip("Mark", price(b.mark))}</div>
+      <h2 style="margin-top:16px">Current quotes</h2>` +
+      (st.resting.length ? `<table><tr><th class="l">Side</th><th class="l">Type</th><th>Price</th><th>Size</th><th>Value</th></tr>` + st.resting.map(q => `<tr><td class="l">${q.side}</td><td class="l">${q.order_type}</td><td>${price(q.price)}</td><td>${q.size}</td><td>$${(q.price * q.size).toFixed(2)}</td></tr>`).join("") + "</table>" : `<div class="muted">No quotes resting.</div>`) +
+      (b.mode === "paper" ? `<div class="warn" style="margin-top:12px">Paper mode: no real orders are sent. Fills are simulated when the mark price crosses a quote, checked once per data refresh, so results are rough and not evidence of live profit.</div>` : "");
+    $("#botevents").innerHTML = `<tr><th class="l">Time (UTC)</th><th class="l">Event</th><th class="l">Detail</th></tr>` + b.events.map(e => `<tr><td class="l">${esc(e.t)}</td><td class="l">${esc(e.event)}</td><td class="l" style="white-space:normal">${esc(e.event === "fill" ? `${e.side} ${e.size} @ ${e.price} (mark ${e.filled_at_mark})` : e.event === "decision" ? `${e.action}: ${e.reason}` : e.error || JSON.stringify(e.result || ""))}</td></tr>`).join("");
+  } catch (e) { $("#botcard").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+/* ---------- watchlist and compare ---------- */
+let memWatch = null;
+function getWatch() { if (memWatch) return memWatch; try { return JSON.parse(localStorage.getItem("undertow-watch") || "[]"); } catch (e) { return []; } }
+function setWatch(a) { memWatch = a; try { localStorage.setItem("undertow-watch", JSON.stringify(a)); } catch (e) { /* storage blocked: the list lasts until reload */ } }
+function toggleWatch(id) { const w = [...getWatch()]; const i = w.indexOf(id); if (i >= 0) w.splice(i, 1); else w.push(id); setWatch(w); lookup(id); loadCompare(); }
+async function loadCompare() {
+  const ids = getWatch();
+  if (!ids.length) { $("#comparetable").innerHTML = `<tr><td class="muted l">Nothing saved yet.</td></tr>`; return; }
+  const ws = await Promise.all(ids.map(id => api("/api/wallet?q=" + id).catch(() => null)));
+  const ok = ws.filter(Boolean);
+  const nearest = w => w.positions.length ? Math.min(...w.positions.map(p => Math.abs(p.liq_distance_pct))) : null;
+  const maxLev = w => w.positions.length ? Math.max(...w.positions.map(p => p.leverage || 0)) : null;
+  const rows = [["Address", w => w.address ? w.address.slice(0, 8) + "…" + w.address.slice(-6) : "–"], ["Balance", w => money(w.balance)],
+    ["Open position value", w => money(w.total_value)], ["Unrealised PnL", w => (w.total_pnl >= 0 ? "+" : "−") + money(Math.abs(w.total_pnl))],
+    ["Positions", w => w.positions.length], ["Highest leverage", w => maxLev(w) == null ? "–" : maxLev(w).toFixed(1) + "x"],
+    ["Nearest liquidation", w => nearest(w) == null ? "–" : nearest(w).toFixed(1) + "% away"],
+    ["Positions with zones in their path", w => w.positions.filter(p => p.in_path.length).length]];
+  $("#comparetable").innerHTML = `<tr><th class="l"></th>${ok.map(w => `<th>#${w.account_id} <a href="#" style="color:var(--muted)" onclick="toggleWatch('${w.account_id}');return false" title="remove">✕</a></th>`).join("")}</tr>` +
+    rows.map(([l, f]) => `<tr><td class="l muted">${l}</td>${ok.map(w => `<td>${f(w)}</td>`).join("")}</tr>`).join("");
+}
+
+/* ---------- trade preview ---------- */
+let tSide = "Long", tReady = false, tDeb;
+async function initTrade() {
+  if (!tReady) {
+    const m = await api("/api/markets");
+    $("#t-perp").innerHTML = m.map(x => `<option value="${x.perp_id}" data-lev="${x.max_leverage}">${esc(x.name)}</option>`).join("");
+    $("#t-perp").value = perp; if (!$("#t-perp").value) $("#t-perp").selectedIndex = 0;
+    tReady = true;
+    $("#t-perp").onchange = () => { syncLev(); runPreview(); };
+    $("#t-long").onclick = () => { tSide = "Long"; sideBtns(); runPreview(); };
+    $("#t-short").onclick = () => { tSide = "Short"; sideBtns(); runPreview(); };
+    ["#t-usd", "#t-price"].forEach(i => $(i).oninput = () => { clearTimeout(tDeb); tDeb = setTimeout(runPreview, 300); });
+    $("#t-lev").oninput = () => { $("#t-levval").textContent = $("#t-lev").value + "x"; clearTimeout(tDeb); tDeb = setTimeout(runPreview, 200); };
+    ["#p-side", "#p-min", "#p-within"].forEach(i => $(i).oninput = $(i).onchange = () => { clearTimeout(tDeb); tDeb = setTimeout(runProtect, 300); });
+  }
+  syncLev(); sideBtns(); runPreview(); runProtect();
+}
+function syncLev() { const o = $("#t-perp").selectedOptions[0]; const mx = o ? +o.dataset.lev : 15; $("#t-lev").max = mx; if (+$("#t-lev").value > mx) $("#t-lev").value = mx; $("#t-levval").textContent = $("#t-lev").value + "x"; }
+function sideBtns() { $("#t-long").style.background = tSide === "Long" ? "var(--accent)" : "var(--panel2)"; $("#t-short").style.background = tSide === "Short" ? "var(--accent)" : "var(--panel2)"; }
+async function runPreview() {
+  const q = `perp=${$("#t-perp").value}&side=${tSide}&usd=${encodeURIComponent($("#t-usd").value)}&lev=${$("#t-lev").value}&price=${encodeURIComponent($("#t-price").value)}`;
+  try {
+    const r = await api("/api/preview?" + q);
+    const st = (l, v, sub) => `<div style="min-width:150px;margin-bottom:8px"><div class="muted small">${l}</div><div style="font-size:18px;font-weight:600">${v}</div>${sub ? `<div class="muted small">${sub}</div>` : ""}</div>`;
+    const fund = r.funding_per_day_usd;
+    let h = `<div class="card"><h2>${esc(r.perp)} ${r.side.toLowerCase()} · ${esc(r.order_type)}</h2><div class="row">` +
+      st("Entry", price(r.entry), `mark ${price(r.mark)}`) + st("Size", r.size.toPrecision(3) + " " + esc(r.perp), money(r.notional)) + st("Margin needed", money(r.margin), r.leverage + "x") +
+      st("Your liquidation", price(r.liq_price), pct(r.liq_distance_pct) + " from price") + st("Opening fee", "$" + r.open_fee_usd.toFixed(3), (r.fee_rate * 100).toFixed(4) + "%") +
+      (r.slippage ? st("Slippage", r.slippage.slippage_bps.toFixed(1) + " bps", r.slippage.filled_fraction < 1 ? "book only fills " + (r.slippage.filled_fraction * 100).toFixed(0) + "%" : "vs best price") : "") +
+      st("Funding / day", (fund > 0 ? "pay " : "get ") + "$" + Math.abs(fund).toFixed(3), `${(Math.abs(r.funding_per_day_pct)).toFixed(3)}% at today's rate`) + `</div>`;
+    r.notes.forEach(n => h += `<div class="warn">${esc(n)}</div>`);
+    if (r.cascade) h += `<div class="muted small" style="margin-top:8px">Cascade estimate from the biggest zone in your path (${money(r.cascade.zone_notional)}, ${Math.abs(r.cascade.zone_distance_pct).toFixed(1)}% away): ends near ${price(r.cascade.cascade_end)}${r.cascade.book_exhausted ? " or beyond (visible book runs out)" : ""}. Worst-case estimate, see Radar for assumptions.</div>`;
+    h += `</div><div class="card"><h2>Other leverage choices</h2><div class="scroll"><table><tr><th class="l">Leverage</th><th>Margin</th><th>Liquidation</th><th>Distance</th><th>Zones in path</th></tr>` +
+      r.alternatives.map(a => `<tr><td class="l">${a.leverage}x</td><td>${money(a.margin)}</td><td>${price(a.liq_price)}</td><td>${pct(a.distance_pct)}</td><td>${a.zones_in_path}</td></tr>`).join("") + `</table></div>
+      <div class="muted small" style="margin-top:8px">Under this model lower leverage is not always safer: it pushes your liquidation past more zones. Funding uses the current rate (${(r.funding_rate * 100).toFixed(4)}% per ~43-minute interval, positive means longs pay) and will change.</div></div>`;
+    $("#t-result").innerHTML = h;
+  } catch (e) { $("#t-result").innerHTML = `<div class="card"><span class="err">${esc(e.message)}</span></div>`; }
+}
+async function runProtect() {
+  try {
+    const r = await api(`/api/protect?perp=${$("#t-perp").value}&side=${$("#p-side").value}&min=${encodeURIComponent($("#p-min").value)}&within=${encodeURIComponent($("#p-within").value)}`);
+    $("#p-result").innerHTML = (r.triggered ? `<div class="warn"><b>Triggered now:</b> a ${r.zone.side.toLowerCase()} zone of ${money(r.zone.notional)} is ${r.zone.distance_pct.toFixed(2)}% from the price. Action: ${r.action}.</div>` :
+      `<div class="muted"><span class="badge b-low">clear</span>No zone of that size is that close on the exposed side right now.</div>`) +
+      `<ul class="assume">${r.limits.map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;
+  } catch (e) { $("#p-result").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+(async () => { await loadStatus(); try { await initMarkets(); await loadRadar(); } catch (e) { $("#headline").innerHTML = `<span class="err">${esc(e.message)}</span>`; } setInterval(loadStatus, 5000); setInterval(() => { if (!$("#tab-radar").hidden) loadRadar(); }, 30000); })();
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "undertow-indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "stop": "envio stop",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "envio": "^3.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,17 @@
+# generated data, snapshots, keys (data/testnet/key.txt is a wallet key: never commit)
+data/
+*.key
+key.txt
+.env
+.env.*
+# python
+__pycache__/
+*.pyc
+# indexer build output and dependencies
+indexer/node_modules/
+indexer/.envio/
+indexer/generated/
+indexer/envio-env.d.ts
+# editor / OS
+.vscode/
+.DS_Store

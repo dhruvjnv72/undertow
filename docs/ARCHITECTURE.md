@@ -55,8 +55,8 @@ other people's liquidations that sit between the price and their own.
 * Hourly volume and funding events from the indexer are compared with Perpl's candles and funding series once the indexer has
   covered whole hours (see the report for the current result).
 
-* The live feed: the order book kept from WebSocket messages equals the contract's book at the same block (top 10 levels per side,
-  identical in price, size and order count); mark, oracle and last equal Perpl's REST ticker.
+* The live feed: the order book kept from WebSocket messages equals the contract's book (top 10 levels per side, identical in price, size and order
+  count) at the block before the one Perpl labels it with, the same convention as its REST book; mark, oracle and last equal Perpl's REST ticker.
 
 ## Honest limits
 

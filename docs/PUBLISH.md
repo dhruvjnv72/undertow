@@ -1,23 +1,7 @@
 # Publishing: GitHub and a live link
 
-Status: the repository is committed locally and checked for keys (`data/` is git-ignored; the testnet wallet key is never committed).
-The remote is set to `https://github.com/TylerDurden14/undertow.git`, but **that repository does not exist yet** (checked 2026-10-12),
-so nothing has been pushed. Creating it needs your signed-in GitHub session.
-
-## 1. Push to GitHub (about 2 minutes)
-
-1. Open https://github.com/new while signed in as TylerDurden14. Repository name: `undertow`. Choose **Public** (the hackathon needs a public
-   repository). Do NOT tick "Add a README", ".gitignore" or a licence (an empty repository pushes cleanly).
-2. In the project folder, in PowerShell:
-
-       git push -u origin main
-
-   A browser window from Git Credential Manager will ask you to sign in to GitHub the first time. If you use two-factor authentication or a
-   different GitHub name, change the remote first: `git remote set-url origin https://github.com/YOUR-NAME/undertow.git`.
-3. Share it: repository Settings, Collaborators, add `metropolis@hackathon.monad.xyz`.
-
-Commits are already authored as `Dhruv Gupta <dhruvjnv72@gmail.com>` (your git identity on this machine). If GitHub does not attribute them to
-your profile, add that email at https://github.com/settings/emails.
+Status (2026-10-12): the code is on GitHub at https://github.com/dhruvjnv72/undertow (public, 73 files, no keys or data files).
+Still to do: share the repository with `metropolis@hackathon.monad.xyz` (Settings, Collaborators) and publish a live link (below).
 
 ## 2. A live link
 

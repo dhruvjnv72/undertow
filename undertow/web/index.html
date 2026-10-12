@@ -50,12 +50,18 @@
   svg text { fill: var(--muted); font-size: 11px; }
   .grid65 { display: grid; grid-template-columns: 65fr 35fr; gap: 14px; } .grid65 > * { min-width: 0; }
   @media (max-width: 900px) { .grid65 { grid-template-columns: 1fr; } }
-  .casc-ctl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .casc-ctl { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 16px; }
   .cc { background: var(--panel2); border-radius: var(--radius); padding: 12px 14px; min-width: 0; } .ck { font-weight: 600; margin-bottom: 8px; }
   .casc-body { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); gap: 18px; }
-  @media (max-width: 900px) { .casc-ctl, .casc-body { grid-template-columns: 1fr; } }
-  .cbar { height: 18px; border-radius: 4px; margin: 4px 0 2px; min-width: 2px; }
-  .cmp .crow { margin-bottom: 12px; } .cmp .verdict { font-size: 15px; margin-top: 4px; }
+  @media (max-width: 900px) { .casc-ctl, .casc-body { grid-template-columns: 1fr; } .bigres .bignum { font-size: 32px; } }
+  #cmp, #casc { font-size: 16.5px; line-height: 1.5; }
+  #casc table th, #casc table td { font-size: 16px; padding: 12px 12px; } #casc table th { font-size: 14px; }
+  #cmp .small, #casc .small { font-size: 13.5px; } #casc ul.assume { font-size: 14px; }
+  .bigres { background: var(--panel2); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px; }
+  .bigres .k { font-size: 12.5px; letter-spacing: .8px; text-transform: uppercase; }
+  .bigres .bignum { font-size: 40px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .cbar { height: 22px; border-radius: 4px; margin: 4px 0 2px; min-width: 2px; }
+  .cmp .crow { margin-bottom: 12px; } .cmp .verdict { font-size: 17px; margin-top: 8px; }
   .hl { padding: 6px 0; font-size: 15px; line-height: 1.45; } .hl + .hl { border-top: 1px solid var(--line); }
   .grid2 > * { min-width: 0; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -445,7 +451,10 @@ async function runCascade() {
         <div class="muted small">The orders that would take the other side of the forced ${falling ? "selling" : "buying"} before the price moves past them.</div></div>
       <div class="verdict">${c.liq_between_usd === 0 ? "No positions are liquidated before that price." : !isFinite(ratio) ? "There are no resting orders in this stretch: forced orders would run straight through it." :
         ratio > 1 ? `Forced orders are <b>${ratio.toFixed(1)}×</b> the resting orders here: the book cannot absorb them, so the price would likely run through this stretch.` : `Resting orders are <b>${(1 / ratio).toFixed(1)}×</b> the forced orders here: the book can absorb them, so the price should mostly hold.`}</div></div>`;
-    let h = `<div style="font-size:15px">${esc(c.sentence)}</div>`;
+    const mv = (c.final_price / radar.mark - 1) * 100;
+    let h = (c.rounds.length ? `<div class="bigres"><div class="k">Where the price could end up (${falling ? "fall" : "rise"})</div><div class="bignum ${falling ? "dn" : "up"}">${price(c.final_price)}${c.book_exhausted ? " or beyond" : ""}</div>
+      <div>${pct(mv, 1)} from the mark (${price(radar.mark)}) · your target was ${price(to)}${c.book_exhausted ? " · <b class='neg'>the visible order book runs out</b>" : ""}</div></div>` :
+      `<div class="bigres"><div class="k">Where the price could end up</div><div class="bignum">${price(to)}</div><div>No cascade: no position is liquidated before this price.</div></div>`) + `<div style="font-size:17px">${esc(c.sentence)}</div>`;
     if (c.rounds.length) {
       h += `<div class="scroll"><table style="margin-top:10px"><tr><th class="l">Round</th><th>Price at start</th><th>Positions</th><th>Forced value</th><th title="Resting orders used up so far (cumulative), out of all visible resting orders on the side being hit">Taken from the book</th><th>Price after</th></tr>` +
         c.rounds.map((r, i) => `<tr><td class="l">${i + 1}</td><td>${price(r.trigger_price)}</td><td>${r.positions}</td><td>${money(r.notional)}</td><td>${money(r.book_taken_usd)} of ${money(r.book_visible_usd)} <span class="muted small">(${r.book_levels} levels${r.unfilled_usd > 0 ? ", " + money(r.unfilled_usd) + ' <span class="neg">unfilled</span>' : ""})</span></td><td>${price(r.end_price)}${r.exhausted ? " <span class='neg'>(book out)</span>" : ""}</td></tr>`).join("") + "</table></div>";

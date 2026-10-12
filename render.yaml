@@ -1,10 +1,11 @@
 # Render blueprint (https://render.com): deploys the Dockerfile as a web service.
 # UNTESTED TEMPLATE: written from Render's documented format but never run by the author.
-# The first build compiles Perpl's Rust CLI and can take 10 to 40 minutes.
+# Uses Dockerfile.fast (prebuilt Perpl CLI from vendor/), so the build takes a couple of minutes instead of 10 to 40.
 services:
   - type: web
     name: undertow
     runtime: docker
+    dockerfilePath: ./Dockerfile.fast
     plan: starter            # "free" also works but sleeps after inactivity, which pauses the data feed
     healthCheckPath: /       # /api/status answers 503 until the first data refresh (about a minute)
     envVars:

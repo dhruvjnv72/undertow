@@ -153,6 +153,11 @@ def api_cascade(q: dict) -> dict:
         d["sentence"] = (f"A move to {fmt_price(c.trigger_price)} triggers ${c.triggered_notional:,.0f} of {word} "
                          f"({c.triggered_positions} positions). Forced orders could push the price to about "
                          f"{fmt_price(c.final_price)}" + (" or beyond: the visible order book runs out." if c.book_exhausted else "."))
+        last = c.rounds[-1]
+        act = "sells into the resting buy orders" if c.side == "Long" else "buys from the resting sell orders"
+        side = "bids" if c.side == "Long" else "asks"
+        d["sentence"] += (f" That forced flow {act}: it uses up ${last.book_taken_usd:,.0f} of the ${last.book_visible_usd:,.0f} visible on the {side} "
+                          f"({last.book_levels} price levels)" + (f", and ${last.unfilled_usd:,.0f} of it finds no resting order at all." if last.unfilled_usd > 0 else "."))
     return d
 
 

@@ -189,6 +189,28 @@ def _impact(levels: list[tuple[float, float]], size: float, bids: bool) -> tuple
     return last / best - 1, True
 
 
+def _consume(levels: list[tuple[float, float]], size: float) -> tuple[float, int, float, float]:
+    """How much resting value `size` uses up, walking the book best price first (same depth limit as _impact).
+
+    Returns (value taken, levels used, visible value, unfilled value).
+    """
+    if not levels:
+        return 0.0, 0, 0.0, 0.0
+    best, limit = levels[0][0], VISIBLE_DEPTH_PCT / 100
+    remaining, taken, used, visible, last = size, 0.0, 0, 0.0, best
+    for price, avail in levels:
+        if abs(price / best - 1) > limit:
+            break
+        visible += price * avail
+        last = price
+        take = min(avail, remaining)
+        if take > 1e-12:
+            taken += take * price
+            used += 1
+            remaining -= take
+    return taken, used, visible, max(0.0, remaining) * last
+
+
 @dataclass
 class Round:
     trigger_price: float
@@ -197,6 +219,10 @@ class Round:
     cumulative_size: float
     end_price: float
     exhausted: bool
+    book_taken_usd: float = 0.0  # resting order value used up so far (all rounds to here)
+    book_levels: int = 0  # price levels (at least partly) used up so far
+    book_visible_usd: float = 0.0  # all visible resting value on the side being hit
+    unfilled_usd: float = 0.0  # forced size the visible book could not absorb
 
 
 @dataclass
@@ -247,7 +273,8 @@ def simulate_cascade(snap: dict, perp_id: int, target_price: float, book_share: 
         total_n += add * price
         impact, exhausted = _impact(levels, cum_size, bids=falling)
         end = target_price * (1 + impact)
-        rounds.append(Round(price, len(hit), add * price, cum_size, end, exhausted))
+        taken, used, visible, unfilled = _consume(levels, cum_size)
+        rounds.append(Round(price, len(hit), add * price, cum_size, end, exhausted, taken, used, visible, unfilled))
         exhausted_any = exhausted_any or exhausted
         price = end
         if not feedback or exhausted:

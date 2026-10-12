@@ -408,8 +408,8 @@ async function runCascade() {
     window.lastCascade = c; drawZones();
     let h = `<div style="font-size:15px">${esc(c.sentence)}</div>`;
     if (c.rounds.length) {
-      h += `<div class="scroll"><table style="margin-top:10px"><tr><th class="l">Round</th><th>Price at start</th><th>Positions</th><th>Forced value</th><th>Price after</th></tr>` +
-        c.rounds.map((r, i) => `<tr><td class="l">${i + 1}</td><td>${price(r.trigger_price)}</td><td>${r.positions}</td><td>${money(r.notional)}</td><td>${price(r.end_price)}${r.exhausted ? " <span class='neg'>(book out)</span>" : ""}</td></tr>`).join("") + "</table></div>";
+      h += `<div class="scroll"><table style="margin-top:10px"><tr><th class="l">Round</th><th>Price at start</th><th>Positions</th><th>Forced value</th><th title="Resting orders used up so far (cumulative), out of all visible resting orders on the side being hit">Taken from the book</th><th>Price after</th></tr>` +
+        c.rounds.map((r, i) => `<tr><td class="l">${i + 1}</td><td>${price(r.trigger_price)}</td><td>${r.positions}</td><td>${money(r.notional)}</td><td>${money(r.book_taken_usd)} of ${money(r.book_visible_usd)} <span class="muted small">(${r.book_levels} levels${r.unfilled_usd > 0 ? ", " + money(r.unfilled_usd) + ' <span class="neg">unfilled</span>' : ""})</span></td><td>${price(r.end_price)}${r.exhausted ? " <span class='neg'>(book out)</span>" : ""}</td></tr>`).join("") + "</table></div>";
     }
     h += `<ul class="assume">${c.assumptions.map(a => `<li>${esc(a)}</li>`).join("")}</ul>`;
     $("#casc").innerHTML = h;

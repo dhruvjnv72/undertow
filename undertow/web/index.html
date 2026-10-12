@@ -376,19 +376,20 @@ async function lookup(q) {
     let h = `<div class="row"><div><b>Account #${w.account_id}</b> <span class="muted small">${w.address || ""}</span></div>
       <button class="go" style="padding:4px 12px;background:${watched ? "var(--panel2)" : "var(--accent)"}" onclick="toggleWatch('${w.account_id}')">${watched ? "★ Watching (remove)" : "☆ Watch"}</button></div>
       <div class="row small muted" style="margin:6px 0 10px"><span>Balance <b style="color:var(--text)">${money(w.balance)}</b></span><span>Locked ${money(w.locked)}</span><span>Open position value <b style="color:var(--text)">${money(w.total_value)}</b></span><span>Unrealised PnL <b class="${w.total_pnl >= 0 ? "pos" : "neg"}">${money(Math.abs(w.total_pnl))}${w.total_pnl < 0 ? " loss" : ""}</b></span></div>`;
-    if (w.activity) {
+    if (w.activity && w.activity.window_start) {
       const a = w.activity;
       h += `<div class="muted small" style="margin-bottom:8px">Indexer (window${a.window_start ? " from " + a.window_start : ""}; resting-side trades only): ${a.maker_trades} maker trades · ${money(a.maker_volume_usd)} maker volume · ${money(a.deposits_usd)} deposited · ${money(a.withdrawals_usd)} withdrawn · ${a.liquidations.length} liquidation${a.liquidations.length === 1 ? "" : "s"}</div>`;
     }
     if (!w.positions.length) h += `<div class="muted">No open positions.</div>`;
     else {
-      h += `<div class="scroll"><table><tr><th class="l">Market</th><th>Side</th><th>Size</th><th>Entry</th><th>Mark</th><th>Value</th><th>Leverage</th><th>PnL</th><th>Liq. price</th><th>Distance</th><th title="Liquidation price if opened with this leverage">At 5x</th><th>At 3x</th><th title="Estimated at the current funding rate; negative means you receive">Funding / day</th></tr>` +
-        w.positions.map(p => `<tr><td class="l"><b>${esc(p.name)}</b></td><td>${p.side}</td><td>${p.size}</td><td>${price(p.entry_price)}</td><td>${price(p.mark)}</td><td>${money(p.value)}</td><td>${p.leverage ? p.leverage.toFixed(1) + "x" : "–"}</td><td class="${p.total_pnl >= 0 ? "pos" : "neg"}">${p.total_pnl >= 0 ? "+" : "−"}${money(Math.abs(p.total_pnl))}</td><td>${price(p.liq_price)}</td><td>${pct(p.liq_distance_pct)}</td><td class="muted">${price(p.liq_at_5x)}</td><td class="muted">${price(p.liq_at_3x)}</td><td class="${p.funding_per_day_usd > 0 ? "neg" : "pos"}">${p.funding_per_day_usd > 0 ? "pay " : "get "}${money(Math.abs(p.funding_per_day_usd))}</td></tr>`).join("") + "</table></div>";
+      h += `<div class="scroll"><table><tr><th class="l">Market</th><th>Side</th><th title="When this position was opened, if the indexer saw it">Opened</th><th>Size</th><th>Entry</th><th>Mark</th><th>Value</th><th>Leverage</th><th>PnL</th><th>Liq. price</th><th>Distance</th><th title="Liquidation price if opened with this leverage">At 5x</th><th>At 3x</th><th title="Estimated at the current funding rate; negative means you receive">Funding / day</th></tr>` +
+        w.positions.map(p => `<tr><td class="l"><b>${esc(p.name)}</b></td><td>${p.side}</td><td class="muted small" style="white-space:normal">${openedCell(p, w)}</td><td>${p.size}</td><td>${price(p.entry_price)}</td><td>${price(p.mark)}</td><td>${money(p.value)}</td><td>${p.leverage ? p.leverage.toFixed(1) + "x" : "–"}</td><td class="${p.total_pnl >= 0 ? "pos" : "neg"}">${p.total_pnl >= 0 ? "+" : "−"}${money(Math.abs(p.total_pnl))}</td><td>${price(p.liq_price)}</td><td>${pct(p.liq_distance_pct)}</td><td class="muted">${price(p.liq_at_5x)}</td><td class="muted">${price(p.liq_at_3x)}</td><td class="${p.funding_per_day_usd > 0 ? "neg" : "pos"}">${p.funding_per_day_usd > 0 ? "pay " : "get "}${money(Math.abs(p.funding_per_day_usd))}</td></tr>`).join("") + "</table></div>";
       w.positions.filter(p => p.in_path.length).forEach(p => {
         const z = p.in_path[0], word = p.side === "Long" ? "longs" : "shorts";
         h += `<div class="warn"><b>${esc(p.name)} ${p.side.toLowerCase()}:</b> your liquidation is ${Math.abs(p.liq_distance_pct).toFixed(1)}% away, but ${money(p.in_path_total)} of other traders' ${word} (in ${p.in_path_count} zone${p.in_path_count > 1 ? "s" : ""} of $5k or more) would be liquidated first. The biggest, ${money(z.notional_others)}, is ${Math.abs(z.distance_pct).toFixed(1)}% away and could push the price on toward you.</div>`;
       });
     }
+    h += ordersHtml(w) + historyHtml(w);
     $("#walletresult").innerHTML = h;
   } catch (e) { $("#walletresult").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 }
@@ -503,6 +504,46 @@ async function loadCompare() {
     ["Positions with zones in their path", w => w.positions.filter(p => p.in_path.length).length]];
   $("#comparetable").innerHTML = `<tr><th class="l"></th>${ok.map(w => `<th>#${w.account_id} <a href="#" style="color:var(--muted)" onclick="toggleWatch('${w.account_id}');return false" title="remove">✕</a></th>`).join("")}</tr>` +
     rows.map(([l, f]) => `<tr><td class="l muted">${l}</td>${ok.map(w => `<td>${f(w)}</td>`).join("")}</tr>`).join("");
+}
+
+/* ---------- wallet: opened-at, open orders, history and statistics ---------- */
+const agoTs = ts => { const s = Math.max(0, Date.now() / 1000 - ts); return s < 90 ? Math.round(s) + " s" : s < 5400 ? Math.round(s / 60) + " min" : s < 172800 ? (s / 3600).toFixed(1) + " h" : (s / 86400).toFixed(1) + " d"; };
+const dtTs = ts => new Date(ts * 1000).toISOString().slice(0, 16).replace("T", " ");
+const signed = v => v == null ? "–" : (v >= 0 ? "+" : "−") + money(Math.abs(v));
+const dur = s => s == null ? "–" : s < 90 ? Math.round(s) + " s" : s < 5400 ? Math.round(s / 60) + " min" : s < 172800 ? (s / 3600).toFixed(1) + " h" : (s / 86400).toFixed(1) + " d";
+function openedCell(p, w) {
+  if (p.opened_ts) return `${agoTs(p.opened_ts)} ago<br>${dtTs(p.opened_ts)}`;
+  return w.history ? `before ${dtTs(w.history.window_start_ts)}` : "–";
+}
+function ordersHtml(w) {
+  if (!w.orders || !w.orders.length) return `<h2 style="margin-top:18px">Open orders</h2><div class="muted small">No resting orders in the latest snapshot.</div>`;
+  return `<h2 style="margin-top:18px">Open orders (resting in the book now)</h2><div class="scroll"><table><tr><th class="l">Market</th><th class="l">Type</th><th>Price</th><th>Size</th><th>Value</th><th title="Distance of the order price from the mark">From mark</th><th>Leverage</th></tr>` +
+    w.orders.slice(0, 25).map(o => `<tr><td class="l"><b>${esc(o.name)}</b></td><td class="l ${o.kind.endsWith("Long") === o.kind.startsWith("Open") ? "up" : "dn"}">${esc(o.kind)}</td><td>${price(o.price)}</td><td>${o.size}</td><td>${money(o.value)}</td><td>${pct(o.from_mark_pct, 2)}</td><td>${o.leverage ? o.leverage + "x" : "–"}</td></tr>`).join("") +
+    `</table></div>${w.orders.length > 25 ? `<div class="muted small">…and ${w.orders.length - 25} more.</div>` : ""}`;
+}
+function historyHtml(w) {
+  const H = w.history;
+  let h = `<h2 style="margin-top:18px">History and statistics</h2>`;
+  if (!H) return h + `<div class="muted small">Not available yet: the position history has not been loaded. It loads by itself when the dashboard starts (about 2 minutes per day of history); to load more days run <code>python -m undertow.history_loader --days 7</code>.</div>`;
+  const S = H.stats, c = (l, v, sub) => `<div style="min-width:130px;margin-bottom:8px"><div class="muted small">${l}</div><div style="font-size:17px;font-weight:600">${v}</div>${sub ? `<div class="muted small">${sub}</div>` : ""}</div>`;
+  h += `<div class="warn" style="margin:0 0 10px">The position history loaded so far covers <b>${dtTs(H.window_start_ts)} to ${dtTs(H.indexed_through_ts)} UTC</b> so far. Everything below describes that window, not the wallet's whole life. Positions opened earlier show “before …”, their holding time is unknown, and any partial closes before the window are missing.</div>`;
+  if (!S.round_trips) {
+    h += `<div class="muted small">No position was fully closed in the window, so there is no win rate yet. ${H.events} position change${H.events === 1 ? "" : "s"} recorded.</div>`;
+  } else {
+    h += `<div class="row" style="align-items:flex-start;gap:6px 22px">` + c("Closed positions", S.round_trips, `${S.wins} won · ${S.losses} lost · ${S.break_even} break-even`) + c("Win rate", S.win_rate == null ? "–" : (S.win_rate * 100).toFixed(0) + "%") +
+      c("Profit factor", S.profit_factor_infinite ? "∞ (no losses)" : S.profit_factor == null ? "–" : S.profit_factor.toFixed(2), "wins ÷ losses") + c("Realized result", signed(S.total_realized_usd), "net of funding") +
+      c("Average win / loss", `${signed(S.avg_win_usd)} / ${signed(S.avg_loss_usd)}`) + c("Largest win / loss", `${signed(S.largest_win_usd)} / ${signed(S.largest_loss_usd)}`) +
+      c("Average holding time", dur(S.avg_hold_seconds), S.hold_known_for + " of " + S.round_trips + " known") + c("Longest streak", `${S.longest_win_streak} wins / ${S.longest_loss_streak} losses`) +
+      c("Best market", S.best_market ? `${esc(S.best_market.market)} ${signed(S.best_market.usd)}` : "–") + c("Worst market", S.worst_market ? `${esc(S.worst_market.market)} ${signed(S.worst_market.usd)}` : "–") +
+      c("Liquidated", S.liquidations) + `</div>`;
+    h += `<div class="muted small" style="margin:4px 0 8px">Win = a result above +$0.001, loss = below −$0.001, anything closer to zero is break-even and left out of the win rate. <b>These are price profit and funding only: trading fees, maker rebates and builder fees are not included</b>, so for an account that trades very often this says little about its true profit. ${S.trips_opened_before_window ? S.trips_opened_before_window + " of these opened before the window, so their result may be incomplete. " : ""}Funding’s sign follows Perpl’s SDK (positive paid = a cost) and was not independently checked.</div>`;
+    h += `<div class="scroll"><table><tr><th class="l">Closed</th><th class="l">Market</th><th class="l">Side</th><th>Result</th><th>Held</th><th class="l">Ended by</th></tr>` + H.trips.map(t =>
+      `<tr><td class="l">${dtTs(t.closed_ts)}</td><td class="l"><b>${esc(t.market)}</b></td><td class="l">${t.side}</td><td class="${t.realized_net >= 0 ? "pos" : "neg"}">${signed(t.realized_net)}</td><td>${t.opened_in_window ? dur(t.hold_seconds) : "before window"}</td><td class="l">${esc(t.ended_by)}</td></tr>`).join("") + `</table></div>`;
+  }
+  h += `<h2 style="margin-top:14px">Recent position changes</h2><div class="scroll"><table><tr><th class="l">Time (UTC)</th><th class="l">Market</th><th class="l">What</th><th class="l">Side</th><th>Price</th><th>Size before → after</th><th>Realized</th><th>Funding paid</th></tr>` +
+    H.recent.map(e => `<tr><td class="l">${dtTs(e.timestamp)}</td><td class="l"><b>${esc(e.perpName)}</b></td><td class="l">${esc(e.kind)}</td><td class="l">${e.side}</td><td>${e.price == null ? "–" : price(e.price)}</td><td>${e.sizeBefore == null ? "?" : e.sizeBefore} → ${e.sizeAfter == null ? "?" : e.sizeAfter}</td><td class="${(e.realizedPnlUsd || 0) >= 0 ? "pos" : "neg"}">${e.realizedPnlUsd == null ? "–" : signed(e.realizedPnlUsd)}</td><td>${e.fundingPaidUsd == null ? "–" : money(e.fundingPaidUsd)}</td></tr>`).join("") +
+    `</table></div>` + (H.events > 25 ? `<div class="muted small">Showing the latest 25 of ${H.events}.</div>` : "");
+  return h;
 }
 
 /* ---------- trade preview ---------- */

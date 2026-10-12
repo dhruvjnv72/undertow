@@ -21,10 +21,15 @@ contracts:
       - event: CollateralWithdrawal
       - event: AccountCreated
       - event: FundingEventCompleted
+      - event: PositionOpenedV2
+      - event: PositionIncreasedV2
+      - event: PositionDecreased
+      - event: PositionClosed
+      - event: PositionInverted
 
 chains:
   - id: 143 # Monad mainnet
-    start_block: 112529093 # about 20 minutes before 2026-10-11 23:20 IST; public RPCs rate-limit a larger backfill. Perpl was deployed at 54773010
+    start_block: 112762898 # about 4.5 hours before 2026-10-12 18:15 IST; public RPCs rate-limit a larger backfill. Perpl was deployed at 54773010
     rpc:
       # From WSL on this machine only rpc-mainnet.monadinfra.com (and the testnet RPC) were reachable; rpc.monad.xyz, rpc1 and rpc2
       # timed out from WSL although Windows reached them. It allows 100-block log queries (rpc2.monad.xyz allows 1,000).

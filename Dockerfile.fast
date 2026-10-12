@@ -7,7 +7,7 @@ FROM python:3.13-slim-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY vendor/perpl-cli-0.2.9-linux-amd64 /usr/local/bin/perpl-cli
 RUN chmod 755 /usr/local/bin/perpl-cli \
-    && pip install --no-cache-dir websockets \
+    && pip install --no-cache-dir websockets eth-abi eth-utils 'eth-hash[pycryptodome]' \
     && useradd -m -u 1000 user && mkdir -p /app/data && chown -R user:user /app
 USER user
 WORKDIR /app

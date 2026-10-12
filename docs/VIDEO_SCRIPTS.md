@@ -42,5 +42,5 @@ run it on testnet first, show the testnet order and fill.
 
 ## 4. Dashboard video (up to 2:00)
 
-Radar (30 s) -> Wallets: search an address, show positions, the "zones in your path" warning, add two wallets to the watchlist and
+Radar (30 s) -> Wallets: search an address, show positions with when each opened, the "zones in your path" warning, the open orders and the history and statistics (state that they cover the loaded window and exclude fees), add two wallets to the watchlist and
 show the compare table (50 s) -> Protocol (25 s) -> Markets (15 s). Mention that the page is read-only.

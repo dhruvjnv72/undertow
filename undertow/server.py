@@ -31,7 +31,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import accounts as registry
-from . import config, envio_client, live, preview, protect, signals, verify
+from . import config, envio_client, history_store, live, preview, protect, signals, verify, wallethistory
 from . import risk
 
 ROOT = Path(__file__).resolve().parent
@@ -190,9 +190,42 @@ def api_wallet(q: dict) -> dict:
                      "liq_at_5x": risk.liq_price_at_leverage(p["entry_price"], p["size"], p["side"], 5, mx),
                      "liq_at_3x": risk.liq_price_at_leverage(p["entry_price"], p["size"], p["side"], 3, mx),
                      "in_path": ip[:5], "in_path_count": len(ip), "in_path_total": sum(z["notional_others"] for z in ip)})
+    # open (resting) orders of this account, from the snapshot
+    orders = []
+    for k, perp in snap["perps"].items():
+        for o in perp.get("orders", []):
+            if o["account_id"] == aid:
+                orders.append({"name": perp["name"], "kind": o["kind"], "price": o["price"], "size": o["size"],
+                               "value": o["price"] * o["size"], "leverage": o.get("leverage"),
+                               "from_mark_pct": (o["price"] / perp["mark"] - 1) * 100})
+    orders.sort(key=lambda o: -o["value"])
+    # history and statistics from the indexer, if it is running
+    history = None
+    raw = history_store.wallet_events(aid)
+    ev = None
+    if raw is not None:
+        names = {int(k): v["name"] for k, v in snap["perps"].items()}
+        ev = {"window_start_ts": raw["window_start_ts"], "indexed_through_ts": raw["indexed_through_ts"], "events": [
+            {"id": r[0], "block": r[1], "timestamp": r[3], "kind": r[4], "perpName": names.get(r[5], f"#{r[5]}"), "side": r[6], "price": r[7],
+             "sizeBefore": r[8], "sizeAfter": r[9], "leverage": r[10], "realizedPnlUsd": r[11], "fundingPaidUsd": r[12]} for r in raw["rows"]]}
+    if ev is not None:
+        events = ev["events"]
+        opened = wallethistory.opened_at(events)
+        for r in rows:
+            r["opened_ts"] = (opened.get(r["name"]) or {}).get("opened_ts")
+        st = wallethistory.stats(events)
+        st["profit_factor_infinite"] = st["profit_factor"] == float("inf")
+        if st["profit_factor_infinite"]:
+            st["profit_factor"] = None
+        trips = wallethistory.trips(events)
+        history = {"window_start_ts": ev["window_start_ts"], "indexed_through_ts": ev["indexed_through_ts"],
+                   "stats": st, "events": len(events), "recent": events[-25:][::-1],
+                   "trips": [{"market": t.market, "side": t.side, "opened_ts": t.opened_ts, "closed_ts": t.closed_ts,
+                              "realized_net": t.realized_net, "ended_by": t.ended_by, "opened_in_window": t.opened_in_window,
+                              "hold_seconds": t.hold_seconds} for t in trips[-15:][::-1]]}
     if not rows and not acct:
         return {"error": f"Account {aid} not found."}
-    return {"account_id": aid, "activity": envio_client.wallet_activity(aid), "address": acct.address if acct else None,
+    return {"account_id": aid, "orders": orders, "history": history, "activity": envio_client.wallet_activity(aid), "address": acct.address if acct else None,
             "balance": acct.balance if acct else None, "locked": acct.locked if acct else None,
             "positions": sorted(rows, key=lambda r: -r["value"]),
             "total_value": sum(r["value"] for r in rows), "total_pnl": sum(r["total_pnl"] for r in rows)}
@@ -379,6 +412,9 @@ def main() -> None:
                     time.sleep(15)  # back off after an error (connection dropped, rate limit)
                 time.sleep(2)
         threading.Thread(target=loop, daemon=True).start()
+    follower = history_store.Follower(days=float(os.environ.get("UNDERTOW_HISTORY_DAYS", "1")),
+                                      perp_ids_fn=lambda: [int(k) for k in snapshot()["perps"]])
+    follower.start()  # keeps wallet history current; backfills on first start
     if LIVE.start():
         print("Live feed: connecting to Perpl's WebSocket", flush=True)
     else:

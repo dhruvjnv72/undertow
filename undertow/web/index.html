@@ -122,9 +122,22 @@
     .ctanote { margin-bottom: 20px; }
   }
   @media (min-width: 1100px) {
-    #tab-live { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(360px, 1fr); gap: 0 24px; align-items: start; }
-    #tab-live .lleft { grid-column: 1; } #tab-live .lright { grid-column: 2; grid-row: 1 / span 2; }
-    #tab-live .lfoot { grid-column: 1 / -1; }
+    /* wide screens: every Live panel on one page, edge to edge, like a trading terminal */
+    body:not(.notlive) main { max-width: none; padding: 8px 10px 40px; }
+    #tab-live { max-width: none; display: grid; gap: 12px; align-items: stretch;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 24vw) minmax(300px, 24vw);
+      grid-template-areas: "left book trades" "left book signals" "alerts zones zones" "foot foot foot"; }
+    #tab-live .lleft { grid-area: left; }
+    #tab-live .lright { display: contents; }
+    #tab-live .utabs { display: none; }
+    #tab-live .pane, #tab-live .pane[hidden] { display: block !important; padding: 0; min-width: 0; }
+    #tab-live .pane .lcard { height: 100%; margin: 0; }
+    #tab-live #lt-book { grid-area: book; } #tab-live #lt-trades { grid-area: trades; } #tab-live #lt-signals { grid-area: signals; }
+    #tab-live #lt-alerts { grid-area: alerts; } #tab-live #lt-zones { grid-area: zones; }
+    #tab-live #lt-book { background: var(--panel); border-radius: var(--radius); padding: 10px 12px; }
+    #tab-live #lt-signals { display: flex !important; flex-direction: column; gap: 12px; }
+    #tab-live .lfoot { grid-area: foot; }
+    .tape { max-height: 260px; }
   }
 </style>
 </head>

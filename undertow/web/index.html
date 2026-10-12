@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>Undertow</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJVbmRlcnRvdyBsb2dvIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwNCIgZmlsbD0iIzE2MWIyMiIvPgogIDxyZWN0IHg9IjEyIiB5PSIxMiIgd2lkdGg9IjQ4OCIgaGVpZ2h0PSI0ODgiIHJ4PSI5NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmEzMjNkIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8IS0tIHN1cmZhY2U6IHRoZSBwcmljZSAtLT4KICA8cGF0aCBkPSJNNjQgMTk2IEMgMTIwIDE2MCwgMTY4IDE2MCwgMjI0IDE5NiBTIDMyOCAyMzIsIDM4NCAxOTYgUyA0MzIgMTY4LCA0NDggMTcyIiBmaWxsPSJub25lIiBzdHJva2U9IiM1YjhjZmYiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik02NCAyMzYgQyAxMjAgMjA0LCAxNjggMjA0LCAyMjQgMjM2IFMgMzI4IDI2OCwgMzg0IDIzNiBTIDQzMiAyMTIsIDQ0OCAyMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNmYjhhNSIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjgiLz4KICA8IS0tIHRoZSBwdWxsIHVuZGVybmVhdGg6IGxpcXVpZGF0aW9uIHpvbmVzLCB0YWxsZXN0IGluIHRoZSBtaWRkbGUgLS0+CiAgPHJlY3QgeD0iMTM2IiB5PSIyOTAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI2MCIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIiBvcGFjaXR5PSIwLjYiLz4KICA8cmVjdCB4PSIyMzQiIHk9IjI5MCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjExNiIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIi8+CiAgPHJlY3QgeD0iMzMyIiB5PSIyOTAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI4MiIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIiBvcGFjaXR5PSIwLjgiLz4KICA8IS0tIHRoZSBwdWxsIGFycm93IC0tPgogIDxwYXRoIGQ9Ik0yNTYgNDUwIEwgMjIyIDQxNCBIIDI5MCBaIiBmaWxsPSIjZTZlZGYzIi8+Cjwvc3ZnPgo=">
 <style>
@@ -242,6 +243,8 @@
   .vsep { display: none; width: 1px; height: 26px; background: var(--line); }
   @media (min-width: 900px) { .vsep { display: inline-block; } nav { margin-left: 4px; } }
   .logomark { width: 34px; height: 34px; flex: none; }
+  :root { color-scheme: dark; }  /* tell the browser this page is dark, so it does not lighten or invert anything */
+  .logomark { background: #161b22; border-radius: 8px; forced-color-adjust: none; }
 </style>
 </head>
 <body>

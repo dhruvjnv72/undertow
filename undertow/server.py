@@ -334,7 +334,7 @@ CANDLE_RES = (60, 300, 900, 1800, 3600, 7200, 14400, 28800, 43200, 86400)
 
 def api_candles(q: dict) -> dict:
     """Candles from Perpl's public REST API (cached 15 s). Prices and volume are already scaled; volume is in USD."""
-    mid, res, n = int(_num(q, "market", 1)), int(_num(q, "res", 3600)), min(int(_num(q, "n", 120)), 400)
+    mid, res, n = int(_num(q, "market", 1)), int(_num(q, "res", 3600)), min(int(_num(q, "n", 120)), 1000)  # Perpl serves at most 1,024 candles per request
     if res not in CANDLE_RES:
         raise ValueError(f"res must be one of {CANDLE_RES}")
     key = (mid, res, n)

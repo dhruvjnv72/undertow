@@ -190,7 +190,8 @@
       <div class="k mono" id="l-conn2" style="margin-top:4px"></div>
     </div>
     <div class="lbar"><div class="pills" id="l-tf">
-      <button data-res="300">5m</button><button data-res="900">15m</button><button data-res="3600" class="on">1H</button><button data-res="14400">4H</button><button data-res="86400">1D</button></div></div>
+      <button data-res="300">5m</button><button data-res="900">15m</button><button data-res="3600" class="on">1H</button><button data-res="14400">4H</button><button data-res="86400">1D</button></div>
+      <div class="pills" id="l-range" title="How far back the chart goes"><button data-days="1">1d</button><button data-days="5" class="on">5d</button><button data-days="30">1m</button><button data-days="90">3m</button><button data-days="180">6m</button><button data-days="365">1y</button></div></div>
     <div id="l-candles"></div>
     <div class="legend" id="l-clegend"><span>Candles and volume: Perpl's own candle API. Faint bands: liquidation zones from the positions snapshot (<i class="dot" style="background:var(--long)"></i>longs liquidated if price falls, <i class="dot" style="background:var(--short)"></i>shorts liquidated if price rises). The last candle follows the live mark.</span></div>
   </div>
@@ -704,26 +705,31 @@ async function liveTick() {
 setInterval(liveTick, 500);
 
 /* ---------- live: candles with volume, current-price line and liquidation-zone bands ---------- */
-let candleRes = 3600, candles = [], candleMkt = null, candleBusy = false, candleAt = 0, liveZones = [], liveMarkNow = null;
+let candlePending = false, candleDays = 5, candleN = 120, candleRes = 3600, candles = [], candleMkt = null, candleBusy = false, candleAt = 0, liveZones = [], liveMarkNow = null;
 document.querySelectorAll("#l-tf button").forEach(b => b.onclick = () => {
   candleRes = +b.dataset.res; document.querySelectorAll("#l-tf button").forEach(x => x.classList.toggle("on", x === b)); candles = []; loadCandles(true);
+});
+document.querySelectorAll("#l-range button").forEach(b => b.onclick = () => {
+  candleDays = +b.dataset.days; document.querySelectorAll("#l-range button").forEach(x => x.classList.toggle("on", x === b)); candles = []; loadCandles(true);
 });
 document.querySelectorAll("#l-tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#l-tabs button").forEach(x => x.classList.toggle("on", x === b));
   ["book", "trades", "zones", "signals", "alerts"].forEach(n => $("#lt-" + n).hidden = n !== b.dataset.lt);
 });
 async function loadCandles(force) {
-  if (candleBusy || (!force && candleMkt === liveMarket && Date.now() - candleAt < 15000)) return;
+  if (candleBusy) { if (force) candlePending = true; return; }
+  if (!force && candleMkt === liveMarket && Date.now() - candleAt < 15000) return;
   candleBusy = true;
   try {
-    const mk = liveMarket, r = await api(`/api/candles?market=${mk}&res=${candleRes}&n=120`);
-    if (mk === liveMarket && r.res === candleRes) { candles = r.candles; candleMkt = mk; candleAt = Date.now(); drawCandles(); }
+    const mk = liveMarket, r = await api(`/api/candles?market=${mk}&res=${candleRes}&n=${Math.min(1000, Math.ceil(candleDays * 86400 / candleRes))}`);
+    if (mk === liveMarket && r.res === candleRes && !candlePending) { candles = r.candles; candleMkt = mk; candleAt = Date.now(); drawCandles(); }
   } catch (e) { $("#l-candles").innerHTML = `<div class="muted small" style="padding:30px 0">Candles unavailable: ${esc(e.message)}</div>`; candleAt = Date.now(); candleMkt = liveMarket; }
   candleBusy = false;
+  if (candlePending) { candlePending = false; loadCandles(true); }
 }
 function drawCandles() {
   const el = $("#l-candles"); if (!candles.length) return;
-  const W = el.clientWidth || 360, H = W < 600 ? 320 : 400, R = 66, T = 8, B = 20, VH = 54, nvis = W < 500 ? 36 : 72;
+  const W = el.clientWidth || 360, H = W < 600 ? 320 : 400, R = 66, T = 8, B = 20, VH = 54, nvis = 1024;
   const cs = candles.slice(-nvis).map(c => ({ ...c })), last = cs[cs.length - 1];
   if (liveMarkNow && last.t + candleRes * 1000 > Date.now()) { last.c = liveMarkNow; last.h = Math.max(last.h, liveMarkNow); last.l = Math.min(last.l, liveMarkNow); }
   const dc = dp(liveMarkNow || last.c);
@@ -753,7 +759,8 @@ function drawCandles() {
     s += `<line x1="${x(i)}" x2="${x(i)}" y1="${y(c.h)}" y2="${y(c.l)}" stroke="${col}"/><rect x="${x(i) - w / 2}" y="${bt}" width="${w}" height="${bh}" fill="${col}"/><rect x="${x(i) - w / 2}" y="${vy(c.v)}" width="${w}" height="${H - B - vy(c.v)}" fill="${col}" opacity=".85"><title>${new Date(c.t).toISOString().slice(0, 16).replace("T", " ")} UTC · O ${pf(c.o, dc)} H ${pf(c.h, dc)} L ${pf(c.l, dc)} C ${pf(c.c, dc)} · volume ${money(c.v)}</title></rect>`;
   });
   const py = y(last.c), tfName = { 300: "5-minute", 900: "15-minute", 3600: "1-hour", 14400: "4-hour", 86400: "1-day" }[candleRes] || "";
-  s += `<text x="4" y="${T + 10}" style="fill:var(--muted)">${tfName} candles</text>`;
+  const wanted = Math.ceil(candleDays * 86400 / candleRes);
+  s += `<text x="4" y="${T + 10}" style="fill:var(--muted)">${tfName} candles · ${cs.length} shown${wanted > 1000 ? " (Perpl's API gives at most about 1,000 per request, so this is the latest " + (cs.length * candleRes / 86400).toFixed(1) + " days)" : ""}</text>`;
   s += `<line x1="0" x2="${W - R}" y1="${py}" y2="${py}" stroke="var(--accent)" stroke-dasharray="4 3"/><rect x="${W - R}" y="${py - 10}" width="${R}" height="20" rx="3" fill="var(--accent)"/><text x="${W - R + 4}" y="${py + 4}" style="fill:#fff;font-weight:600">${pf(last.c, dc)}</text></svg>`;
   el.innerHTML = s;
 }

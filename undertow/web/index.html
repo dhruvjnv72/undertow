@@ -241,12 +241,25 @@
   .logo .tag { font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid #3a3a42; border-radius: 5px; padding: 2px 7px; }
   .vsep { display: none; width: 1px; height: 26px; background: var(--line); }
   @media (min-width: 900px) { .vsep { display: inline-block; } nav { margin-left: 4px; } }
+  .logomark { width: 34px; height: 34px; flex: none; }
 </style>
 </head>
 <body>
 <header>
   <a class="logo" href="#live" title="Undertow: see the pull before it takes you" onclick="showTab('live');return false">
-    <svg viewBox="2 5 28 26" width="30" height="28" aria-hidden="true"><path d="M3 6H11V20H21V14H29V24L23 30H9L3 24Z" fill="#3d7bff"/><rect x="21" y="6" width="8" height="5" fill="#ff4b4b"/></svg>
+    <svg class="logomark" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="104" fill="#161b22"/>
+  <rect x="12" y="12" width="488" height="488" rx="94" fill="none" stroke="#2a323d" stroke-width="4"/>
+  
+  <path d="M64 196 C 120 160, 168 160, 224 196 S 328 232, 384 196 S 432 168, 448 172" fill="none" stroke="#5b8cff" stroke-width="22" stroke-linecap="round"/>
+  <path d="M64 236 C 120 204, 168 204, 224 236 S 328 268, 384 236 S 432 212, 448 216" fill="none" stroke="#3fb8a5" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+  
+  <rect x="136" y="290" width="44" height="60" rx="12" fill="#e5736b" opacity="0.6"/>
+  <rect x="234" y="290" width="44" height="116" rx="12" fill="#e5736b"/>
+  <rect x="332" y="290" width="44" height="82" rx="12" fill="#e5736b" opacity="0.8"/>
+  
+  <path d="M256 450 L 222 414 H 290 Z" fill="#e6edf3"/>
+</svg>
     <span class="wm">Undertow</span><span class="tag">Read-only</span></a>
   <span class="vsep"></span>
   <nav>

@@ -7,14 +7,14 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJVbmRlcnRvdyBsb2dvIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwNCIgZmlsbD0iIzE2MWIyMiIvPgogIDxyZWN0IHg9IjEyIiB5PSIxMiIgd2lkdGg9IjQ4OCIgaGVpZ2h0PSI0ODgiIHJ4PSI5NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmEzMjNkIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8IS0tIHN1cmZhY2U6IHRoZSBwcmljZSAtLT4KICA8cGF0aCBkPSJNNjQgMTk2IEMgMTIwIDE2MCwgMTY4IDE2MCwgMjI0IDE5NiBTIDMyOCAyMzIsIDM4NCAxOTYgUyA0MzIgMTY4LCA0NDggMTcyIiBmaWxsPSJub25lIiBzdHJva2U9IiM1YjhjZmYiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik02NCAyMzYgQyAxMjAgMjA0LCAxNjggMjA0LCAyMjQgMjM2IFMgMzI4IDI2OCwgMzg0IDIzNiBTIDQzMiAyMTIsIDQ0OCAyMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNmYjhhNSIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjgiLz4KICA8IS0tIHRoZSBwdWxsIHVuZGVybmVhdGg6IGxpcXVpZGF0aW9uIHpvbmVzLCB0YWxsZXN0IGluIHRoZSBtaWRkbGUgLS0+CiAgPHJlY3QgeD0iMTM2IiB5PSIyOTAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI2MCIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIiBvcGFjaXR5PSIwLjYiLz4KICA8cmVjdCB4PSIyMzQiIHk9IjI5MCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjExNiIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIi8+CiAgPHJlY3QgeD0iMzMyIiB5PSIyOTAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI4MiIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIiBvcGFjaXR5PSIwLjgiLz4KICA8IS0tIHRoZSBwdWxsIGFycm93IC0tPgogIDxwYXRoIGQ9Ik0yNTYgNDUwIEwgMjIyIDQxNCBIIDI5MCBaIiBmaWxsPSIjZTZlZGYzIi8+Cjwvc3ZnPgo=">
 <style>
   :root {
-    --bg: #0a0a0a; --panel: #141414; --panel2: #1f1f1f; --line: #262626; --text: #f4f4f5; --muted: #8a8f98;
+    --bg: #08080a; --panel: #101013; --panel2: #1a1a1f; --line: #1f1f24; --text: #f4f4f5; --muted: #8a8f98;
     --accent: #1f6fff; --long: #ff3b3b; --short: #00d27a; --warn: #e3b341; --ok: #00d27a;
-    --nav-h: 62px; --radius: 16px;
+    --nav-h: 62px; --radius: 8px;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding-bottom: calc(var(--nav-h) + 8px); }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; padding-bottom: calc(var(--nav-h) + 8px); }
   header { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: center; padding: 12px 16px 6px; }
   .brand { white-space: nowrap; font-weight: 700; font-size: 18px; letter-spacing: .3px; }
   .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; }
@@ -27,7 +27,7 @@
   #status { color: var(--muted); font-size: 11px; display: flex; gap: 4px 12px; flex-wrap: wrap; width: 100%; }
   #status b { color: var(--text); font-weight: 600; }
   main { max-width: 1180px; margin: 0 auto; padding: 8px 14px 40px; }
-  .card { min-width: 0; background: var(--panel); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .card { min-width: 0; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
   .row > * { min-width: 0; }
   .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
@@ -56,7 +56,7 @@
   .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
   .err { color: var(--long); }
-  .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .mono { font-family: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0; }
   .up { color: var(--short); } .dn { color: var(--long); }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel2); }
   .dotl { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
@@ -68,8 +68,8 @@
   .utabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: inherit; font-size: 15px; padding: 12px 0 10px; cursor: pointer; white-space: nowrap; }
   .utabs button.on { color: var(--text); border-bottom-color: var(--text); }
   .pills { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .pills button { background: none; border: 0; color: var(--text); font: inherit; padding: 7px 13px; border-radius: 8px; cursor: pointer; }
-  .pills button.on { background: var(--panel2); }
+  .pills button { background: none; border: 0; color: var(--muted); font: inherit; font-weight: 600; padding: 6px 11px; border-radius: 5px; cursor: pointer; }
+  .pills button.on { background: var(--panel2); color: var(--text); } .pills button:hover { color: var(--text); }
   /* Live screen */
   #tab-live { max-width: 1500px; margin: 0 auto; }
   .lhead .lh-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
@@ -85,14 +85,14 @@
   .sb .v { font-size: 14px; font-weight: 700; }
   .hzl .k { font-size: 12px; letter-spacing: .6px; }
   @media (max-width: 900px) { .hz { grid-template-columns: 1fr; } .hzl { border-right: 0; border-bottom: 1px solid var(--line); } .hzr { grid-template-columns: repeat(2, minmax(0, 1fr)); } #l-last { font-size: 38px; } }
-  @media (min-width: 900px) and (max-width: 1799px) { .hzr { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (min-width: 900px) { .hzr { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); } }
   .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; font-size: 12px; flex: 1; min-width: 220px; max-width: 460px; }
   .stats > div { display: flex; justify-content: space-between; gap: 8px; } .stats .k { font-size: 12px; } .stats .v { font-weight: 600; text-align: right; }
   .lbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 12px 0 4px; }
   #l-candles { width: 100%; touch-action: pan-y; }
   .lmain { margin-top: 10px; }
   .pane { padding-top: 10px; }
-  .lcard { background: var(--panel); border-radius: var(--radius); padding: 12px 14px; min-width: 0; margin-bottom: 12px; }
+  .lcard { border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); padding: 12px 14px; min-width: 0; margin-bottom: 12px; }
   .lcard h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 600; }
   .book2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; font-size: 13.5px; }
   .book2 .hd { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; color: var(--muted); font-size: 12px; padding: 8px 4px; }
@@ -100,6 +100,16 @@
   .book2 .r span { position: relative; z-index: 1; }
   .book2 .bar { position: absolute; top: 0; bottom: 0; opacity: .2; z-index: 0; border-radius: 4px; }
   .book2 .bids .bar { right: 0; } .book2 .asks .bar { left: 0; }
+  .lad { display: none; }
+  .lad .lh, .lad .lr { display: grid; grid-template-columns: 1.15fr 1fr 1fr; padding: 0 8px; }
+  .lad .lh { color: var(--muted); font-size: 12px; padding-top: 4px; padding-bottom: 6px; }
+  .lad .lh span:not(:first-child), .lad .lr span:not(:first-child) { text-align: right; }
+  .lad .lr { position: relative; font-size: 12.5px; line-height: 21px; }
+  .lad .lr span { position: relative; z-index: 1; }
+  .lad .lr .bar { position: absolute; right: 0; top: 0; bottom: 0; opacity: .22; }
+  .lad .lmid { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 8px; margin: 3px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0c0c0f; color: var(--muted); font-size: 12px; }
+  .lad .lmid b { font-size: 19px; font-weight: 600; }
+  .lad .lfootb { color: var(--muted); font-size: 11px; padding: 6px 8px 0; }
   .bookmid { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; color: var(--muted); font-size: 12px; padding-top: 8px; }
   .tape { font-size: 13px; max-height: 420px; overflow: hidden; }
   .tape .t { display: grid; grid-template-columns: .8fr .9fr 1fr 1fr; padding: 4px 4px; }
@@ -133,10 +143,16 @@
   @media (min-width: 1100px) {
     /* wide screens: every Live panel on one page, edge to edge, like a trading terminal */
     body:not(.notlive) main { max-width: none; padding: 8px 10px 40px; }
-    #tab-live { max-width: none; display: grid; gap: 12px; align-items: stretch;
+    #tab-live { max-width: none; display: grid; gap: 8px; align-items: stretch;
       grid-template-columns: minmax(0, 1fr) minmax(300px, 24vw) minmax(300px, 24vw);
-      grid-template-areas: "left book trades" "left book signals" "alerts zones zones" "foot foot foot"; }
+      grid-template-areas: "strip strip strip" "left book trades" "left book signals" "alerts zones zones" "foot foot foot"; }
     #tab-live .lleft { grid-area: left; }
+    #tab-live .lhead { grid-area: strip; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 16px; }
+    #tab-live .lh-top { display: contents; } #tab-live .lh-top > div { order: 2; } #tab-live .lhead .hz { order: 1; flex: 1; margin: 0; background: none; border-radius: 0; min-width: 0; grid-template-columns: auto 1fr; }
+    #tab-live .hzl { padding: 0 20px 0 0; } #tab-live #l-last { font-size: 30px; } #tab-live .hzr { padding: 0 0 0 20px; align-items: center; }
+    #tab-live #l-conn2 { order: 3; width: 100%; margin: 0 !important; font-size: 10.5px; }
+    .lhead select.pair { order: 0; }
+    #tab-live .sbs { display: none; } #tab-live .lad { display: block; }
     #tab-live .lright { display: contents; }
     #tab-live .utabs { display: none; }
     #tab-live .pane, #tab-live .pane[hidden] { display: block !important; padding: 0; min-width: 0; }
@@ -144,7 +160,7 @@
     #tab-live #lt-book { grid-area: book; } #tab-live #lt-trades { grid-area: trades; } #tab-live #lt-signals { grid-area: signals; }
     #tab-live #lt-alerts { grid-area: alerts; } #tab-live #lt-zones { grid-area: zones; }
     #tab-live #lt-book { background: var(--panel); border-radius: var(--radius); padding: 10px 12px; position: relative; min-height: 300px; }
-    #tab-live #l-book { position: absolute; inset: 10px 12px; overflow: hidden; align-content: start; }
+    #tab-live #l-book { position: absolute; inset: 10px 6px; overflow: hidden; }
     .book2 .r { padding: 4px 6px; }
     #tab-live #lt-signals { display: flex !important; flex-direction: column; gap: 12px; }
     #tab-live .lfoot { grid-area: foot; }
@@ -170,7 +186,6 @@
 <main>
 <div id="stalebanner" class="warn" hidden style="margin-bottom:16px"></div>
 <section id="tab-live">
-  <div class="lleft">
     <div class="lhead">
       <div class="lh-top"><select id="l-market" class="pair"></select>
         <div style="text-align:right"><span class="pill off" id="l-conn"><i class="dotl"></i><span>connecting…</span></span></div></div>
@@ -189,6 +204,7 @@
       </div>
       <div class="k mono" id="l-conn2" style="margin-top:4px"></div>
     </div>
+  <div class="lleft">
     <div class="lbar"><div class="pills" id="l-tf">
       <button data-res="300">5m</button><button data-res="900">15m</button><button data-res="3600" class="on">1H</button><button data-res="14400">4H</button><button data-res="86400">1D</button></div>
       <div class="pills" id="l-range" title="How far back the chart goes"><button data-days="1">1d</button><button data-days="5" class="on">5d</button><button data-days="30">1m</button><button data-days="90">3m</button><button data-days="180">6m</button><button data-days="365">1y</button></div></div>
@@ -198,7 +214,7 @@
   <div class="lright lmain">
     <div class="utabs" id="l-tabs"><button data-lt="book" class="on">Order Book</button><button data-lt="trades">Trades</button><button data-lt="zones">Zones</button><button data-lt="signals">Signals</button><button data-lt="alerts">Alerts</button></div>
     <div class="pane" id="lt-book">
-      <div class="book2 mono" id="l-book"></div>
+      <div class="mono" id="l-book"></div>
     </div>
     <div class="pane" id="lt-trades" hidden><div class="lcard"><h3>Trades (live tape)</h3><div class="tape mono" id="l-tape"></div></div></div>
     <div class="pane" id="lt-zones" hidden><div class="lcard"><h3>Liquidation zones against the LIVE mark</h3><div class="scroll"><table class="lz mono" id="l-zones"></table></div><div class="muted small" id="l-prox" style="margin-top:6px"></div></div></div>
@@ -729,7 +745,7 @@ async function loadCandles(force) {
 }
 function drawCandles() {
   const el = $("#l-candles"); if (!candles.length) return;
-  const W = el.clientWidth || 360, H = W < 600 ? 320 : 400, R = 66, T = 8, B = 20, VH = 54, nvis = 1024;
+  const W = el.clientWidth || 360, H = W < 600 ? 320 : Math.max(460, Math.min(780, (window.innerHeight || 900) - 250)), R = 66, T = 8, B = 20, VH = 54, nvis = 1024;
   const cs = candles.slice(-nvis).map(c => ({ ...c })), last = cs[cs.length - 1];
   if (liveMarkNow && last.t + candleRes * 1000 > Date.now()) { last.c = liveMarkNow; last.h = Math.max(last.h, liveMarkNow); last.l = Math.min(last.l, liveMarkNow); }
   const dc = dp(liveMarkNow || last.c);
@@ -791,18 +807,23 @@ function renderLive(d) {
   const c24 = g.change_24h_pct; $("#l-24h").textContent = c24 == null ? "–" : pct(c24, 2); $("#l-24h").className = "chg " + (c24 >= 0 ? "up" : "dn");
   $("#l-oi").textContent = `${pf(m.open_interest, 3)} (${money(m.open_interest * m.mark)})`; $("#l-vol").textContent = money(m.volume_24h_usd);
 
-  // order book, side by side: buy left, sell right
+  // order book: side by side on phones, one Perpl-style ladder (sells above, buys below) on wide screens
   const mx = Math.max(...m.bids.map(x => x.cum), ...m.asks.map(x => x.cum), 1e-9), sz = m.mark > 1000 ? 5 : m.mark > 1 ? 3 : 0;
   const bar = (x, side) => `<div class="bar" style="width:${(x.cum / mx * 100).toFixed(1)}%;background:var(--${side === "ask" ? "long" : "short"})"></div>`;
   const spr = m.best_ask && m.best_bid ? m.best_ask - m.best_bid : 0;
-  $("#l-book").innerHTML = `<div class="hd"><span>Buy · Amount</span><span>Price</span></div><div class="hd"><span>Price</span><span>Sell · Amount</span></div>` +
+  const lr = (x, side) => `<div class="lr">${bar(x, side)}<span class="${side === "ask" ? "dn" : "up"}">${pf(x.price, dc)}</span><span>${pf(x.size, sz)}</span><span>${pf(x.cum, sz)}</span></div>`;
+  const arrow = liveLast && liveLast.last != null && m.last < liveLast.last ? "↓" : "↑";
+  const foot = `<span>book ${m.book_age_ms == null ? "–" : m.book_age_ms + " ms"} old · block ${m.book_block.toLocaleString()}</span>`;
+  $("#l-book").innerHTML = `<div class="book2 sbs"><div class="hd"><span>Buy · Amount</span><span>Price</span></div><div class="hd"><span>Price</span><span>Sell · Amount</span></div>` +
     `<div class="bids">${m.bids.map(x => `<div class="r" title="cumulative ${pf(x.cum, sz)}">${bar(x, "bid")}<span>${pf(x.size, sz)}</span><span class="up">${pf(x.price, dc)}</span></div>`).join("")}</div>` +
     `<div class="asks">${m.asks.map(x => `<div class="r" title="cumulative ${pf(x.cum, sz)}">${bar(x, "ask")}<span class="dn">${pf(x.price, dc)}</span><span>${pf(x.size, sz)}</span></div>`).join("")}</div>` +
-    `<div class="bookmid" style="grid-column:1/-1"><span>spread ${pf(spr, dc)}</span><span>book ${m.book_age_ms == null ? "–" : m.book_age_ms + " ms"} old · block ${m.book_block.toLocaleString()}</span></div>`;
+    `<div class="bookmid" style="grid-column:1/-1"><span>spread ${pf(spr, dc)}</span>${foot}</div></div>` +
+    `<div class="lad"><div class="lh"><span>Price</span><span>Size</span><span>Total</span></div><div class="lasks">${[...m.asks].reverse().map(x => lr(x, "ask")).join("")}</div>` +
+    `<div class="lmid"><b class="${arrow === "↑" ? "up" : "dn"}">${arrow} ${pf(m.last, dc)}</b><span>Spread ${pf(spr, dc)}</span></div><div class="lbids">${m.bids.map(x => lr(x, "bid")).join("")}</div><div class="lfootb">${foot}</div></div>`;
 
-  if (WIDE.matches) {  // fill the tall book panel: drop levels that would not fit fully
-    const bk = $("#l-book"), bb = bk.querySelectorAll(".bids .r"), aa = bk.querySelectorAll(".asks .r");
-    let n = bb.length; while (n > 4 && bk.scrollHeight > bk.clientHeight + 1) { n--; bb[n].remove(); aa[n].remove(); }
+  if (WIDE.matches) {  // fill the tall book panel: drop the levels farthest from the price that would not fit fully
+    const bk = $("#l-book"), as = bk.querySelectorAll(".lasks .lr"), bs = bk.querySelectorAll(".lbids .lr");
+    let n = bs.length; while (n > 4 && bk.scrollHeight > bk.clientHeight + 1) { n--; as[as.length - 1 - n].remove(); bs[n].remove(); }
   }
 
   // chart

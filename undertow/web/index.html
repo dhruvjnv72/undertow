@@ -15,7 +15,7 @@
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding-bottom: calc(var(--nav-h) + 8px); }
   header { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: center; padding: 12px 16px 6px; }
-  .brand { font-weight: 700; font-size: 18px; letter-spacing: .3px; }
+  .brand { white-space: nowrap; font-weight: 700; font-size: 18px; letter-spacing: .3px; }
   .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; }
   /* navigation: bottom bar on phones, top bar on wide screens */
   nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; height: var(--nav-h); background: #0f0f0f; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
@@ -26,12 +26,13 @@
   #status { color: var(--muted); font-size: 11px; display: flex; gap: 4px 12px; flex-wrap: wrap; width: 100%; }
   #status b { color: var(--text); font-weight: 600; }
   main { max-width: 1180px; margin: 0 auto; padding: 8px 14px 40px; }
-  .card { background: var(--panel); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .card { min-width: 0; background: var(--panel); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .row > * { min-width: 0; }
   .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
   select, input[type=text] { background: var(--panel2); color: var(--text); border: 0; border-radius: 10px; padding: 10px 12px; font: inherit; min-height: 40px; }
   input[type=text] { min-width: 340px; flex: 1; }
-  input[type=range] { width: 100%; accent-color: var(--short); }
+  input[type=range] { width: 100%; min-width: 0; flex: 1 1 100%; accent-color: var(--short); }
   button.go { background: var(--short); color: #04130b; font-weight: 700; border: 0; border-radius: 12px; padding: 10px 18px; cursor: pointer; font: inherit; font-weight: 700; min-height: 40px; }
   .headline { font-size: 18px; line-height: 1.4; }
   .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-right: 8px; }
@@ -46,6 +47,7 @@
   .long { color: var(--long); } .short { color: var(--short); } .pos { color: var(--ok); } .neg { color: var(--long); }
   .scroll { overflow-x: auto; }
   svg text { fill: var(--muted); font-size: 11px; }
+  .grid2 > * { min-width: 0; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } input[type=text] { min-width: 0; } }
   .warn { background: #241d0a; border-radius: 12px; color: var(--warn); padding: 10px 14px; margin-top: 8px; font-size: 13px; }
@@ -209,7 +211,7 @@
     <div class="card">
       <h2>Cascade simulator</h2>
       <div class="muted small">If the price moves to…</div>
-      <div class="row" style="margin:6px 0"><input type="range" id="move" min="-30" max="30" step="0.5" value="-5"><b id="moveval" style="min-width:150px;text-align:right"></b></div>
+      <div class="row" style="margin:6px 0"><input type="range" id="move" min="-30" max="30" step="0.5" value="-5"><b id="moveval" style="text-align:right;margin-left:auto"></b></div>
       <div class="row small muted">
         <label>Share of liquidations hitting the order book
           <select id="share"><option value="1">100% (worst case)</option><option value="0.5">50%</option><option value="0.25">25%</option></select></label>
@@ -660,7 +662,7 @@ async function liveInit() {
   liveReady = true;
 }
 async function liveTick() {
-  if (!liveActive || liveBusy || document.hidden) return;
+  if (!liveActive || liveBusy || (document.hidden && !location.search.includes("shot"))) return;
   liveBusy = true;
   try {
     if (!liveReady) await liveInit();

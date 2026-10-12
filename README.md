@@ -5,7 +5,8 @@ fully on Monad. Every position on Perpl is public, so Undertow can compute where
 points bunch up, estimate how far a chain reaction could push the price, and warn a trader about other people's liquidations that sit
 between the price and their own.
 
-* **Live**: a terminal-style screen updated every block from Perpl's own public WebSocket (oracle, mark, last, order book, trades), with
+* **Look**: dark, mobile-first layout (bottom tab bar on phones, top bar on wide screens). Screenshots: `docs/screenshots/live-390.png` (phone) and `docs/screenshots/live-1500.png` (desktop).
+* **Live**: an exchange-style screen (candlestick chart with volume and liquidation-zone bands from Perpl's candle API, side-by-side order book) updated every block from Perpl's own public WebSocket (oracle, mark, last, order book, trades), with
   signals computed against the live mark. Needs `pip install websockets`.
 * **Radar**: liquidation zones, a plain-language warning, a cascade simulator (a labelled worst-case estimate).
 * **Trade**: order preview with liquidation price, zones in your path, fees, funding per day and slippage. It never sends an order.

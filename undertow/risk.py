@@ -276,7 +276,7 @@ def headline(snap: dict, perp_id: int, window_pct: float = 15.0) -> dict:
     """The plain-language sentence for the top of the Radar.
 
     Picks the biggest zone within `window_pct` of the mark. Risk label is a heuristic:
-    forced value / resting order value within 5% of the mark: <0.5 low, <2 medium, otherwise high.
+    forced value / resting order value between the mark and the zone's far edge: <0.5 low, <2 medium, otherwise high.
     """
     perp = snap["perps"][str(perp_id)]
     zs = [z for z in zones(snap, perp_id) if abs(z.mid / perp["mark"] - 1) * 100 <= window_pct]
@@ -286,13 +286,15 @@ def headline(snap: dict, perp_id: int, window_pct: float = 15.0) -> dict:
     z = max(zs, key=lambda x: x.notional)
     dist = (z.mid / perp["mark"] - 1) * 100
     casc = simulate_cascade(snap, perp_id, z.low if z.side == "Long" else z.high)  # far edge: the whole zone is reached
-    depth = depth_notional(snap, perp_id, bids=(z.side == "Long"), within_pct=5.0)
+    far_edge = (z.low if z.side == "Long" else z.high)
+    reach = max(1.0, abs(far_edge / perp["mark"] - 1) * 100)  # count the resting orders between the price and the far edge of the zone
+    depth = depth_notional(snap, perp_id, bids=(z.side == "Long"), within_pct=reach)
     ratio = z.notional / depth if depth else float("inf")
     risk = "low" if ratio < 0.5 else "medium" if ratio < 2 else "high"
     word = "longs" if z.side == "Long" else "shorts"
     direction = "below" if dist < 0 else "above"
     sentence = (f"{fmt_usd(z.notional)} of {word} {abs(dist):.1f}% {direction} the price. "
-                f"Resting orders within 5% on that side: {fmt_usd(depth)}. Cascade risk: {risk}.")
+                f"Resting orders between the price and that zone ({reach:.1f}%): {fmt_usd(depth)}. Cascade risk: {risk}.")
     if z.top_account_share > 0.6 and z.positions > 1:
         sentence += f" {z.top_account_share:.0%} of this zone is one account."
     return {"sentence": sentence, "risk": risk, "ratio": ratio, "zone": z, "cascade": casc, "depth": depth}

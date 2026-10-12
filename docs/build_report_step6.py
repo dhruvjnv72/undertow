@@ -70,14 +70,14 @@ S = [Paragraph("Undertow - final report and your to-do list", H1),
      table([[cell("<b>Piece</b>"), cell("<b>State</b>")],
             [cell("Radar: liquidation zones, plain-language warning, cascade simulator"), cell("Done. Cascade is a labelled worst-case estimate, not validated on a real liquidation")],
             [cell("Trade: order preview (liquidation, zones in your path, fees, funding, slippage)"), cell("Done. Does not send orders")],
-            [cell("Markets, Protocol, Wallets (search, watchlist, compare), Bot tabs"), cell("Done. Wallet profit-and-loss statistics are not built")],
+            [cell("Markets, Protocol, Wallets (search, watchlist, compare), Bot tabs"), cell("Done. Wallet history and statistics added 12 October (see below)")],
             [cell("Liquidation-aware order rules"), cell("Done as a live check and rule engine. Checked about once a minute, not every block; live cancelling untested")],
             [cell("Independent correctness checks against Perpl's REST API"), cell("Done; results below")],
             [cell("Bot"), cell("Paper mode only. Testnet and mainnet need your wallet")],
             [cell("Envio indexer"), cell("Built and tested end to end, but the public RPCs rate-limit it, so it holds only a small recent window")],
             [cell("Logo, README, architecture, deploy guide, video scripts, submission checklist"), cell("Done (in docs/)")],
             [cell("Code in a local git repository"), cell("Committed locally. Not pushed anywhere")],
-            [cell("Docker image for hosting"), cell("Builds and starts; data refresh not provable on my network (Part 2)")]],
+            [cell("Docker image for hosting"), cell("Built, run and fetching fresh data locally; hosts untested")]],
            [86 * mm, 88 * mm]),
      Paragraph("Part 1: how the numbers were verified", H1),
      Paragraph("Each check compares our value with Perpl's own public API (an independent source) or with Perpl's own SDK. They can be rerun with "
@@ -111,12 +111,12 @@ S += bullets([
     "(for example Alchemy, which is also a hackathon sponsor) is the real fix.",
     "<b>The Envio indexer cannot backfill on public RPCs.</b> It stalls on rate limits after a few hundred blocks. The proper source (HyperSync) needs a free Envio token, "
     "which means creating an account, something I cannot do. With the token it can read the full history since launch within minutes.",
-    "<b>Docker image:</b> it <b>builds</b> (216 MB) and <b>starts</b>: the page loads (HTTP 200), the Perpl command-line tool is inside, and the data API answers 503 until data arrives. "
-    "What I could <b>not</b> prove is the data refresh inside the container: from Docker on this machine every Monad RPC refused the connection (the same blocked path seen from Ubuntu), "
-    "so it never fetched data. On a normal host with a working RPC it should; confirm it once after deploying.",
+    "<b>Docker image (updated 12 October):</b> now tested end to end locally. The fast build (Dockerfile.fast, a prebuilt Perpl tool, no Rust compile) takes about 15 seconds, runs as a "
+    "normal user, and fetched fresh data inside the container through a fallback RPC. What is still untested is each hosting company's own build and run steps.",
     "<b>Bot on testnet:</b> needs a funded wallet (below). Nothing about order placement, cancelling or fills has run on any chain.",
-    "<b>Wallet statistics</b> (win rate, profit factor, streaks, holding time) and trade history are not built. The indexer records only the resting side of each trade and no per-wallet "
-    "profit and loss, so this needs more indexing work. The Perpl Risk Tool bounty lists these, so that entry is incomplete.",
+    "<b>Wallet statistics (updated 12 October):</b> now built from the chain: opened-at time, round trips, win rate, profit factor, streaks and holding time, for the loaded "
+    "history window. Not built: maximum drawdown. The figures are price profit and funding only (trading fees and rebates are not in the events), and a wallet's opening before "
+    "the window shows as 'before ...'.",
     "<b>Several-days-of-live-bot-activity</b> for the API bounty cannot be achieved any more: even if a wallet is funded today there are about 1.5 days left.",
     "<b>Cascade model validation:</b> no real Perpl liquidation has appeared in the indexed window, so the model has never been tested against a real one.",
 ])

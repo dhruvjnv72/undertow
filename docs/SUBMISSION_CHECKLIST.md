@@ -24,9 +24,9 @@ Status as of 11 October 2026 evening. "Me" means done by the assistant in this p
 | Per-market breakdown and long/short balance | Done (positions and collateral per side) |
 | Liquidation data and funding rate overview | Liquidation list and funding rate shown; liquidation history is empty until a liquidation falls in the window |
 | Search any address for a wallet profile | Done |
-| Open positions with size, entry, leverage, PnL, liquidation price | Done |
-| Trade history and realised PnL | **Not built** (the indexer records only the resting side of trades) |
-| Win rate, profit factor, biggest fall, streaks, holding time | **Not built** |
+| Open positions with size, entry, leverage, PnL, liquidation price | Done, plus when each position was opened (if inside the loaded history) and the wallet's open resting orders |
+| Trade history and realised PnL | Done for the history loaded so far (default 1 day, up to any number of days): every position opening, change, close and liquidation per wallet, with realized profit (price and funding; fees not included) |
+| Win rate, profit factor, biggest fall, streaks, holding time | Win rate, profit factor, streaks, holding time, best and worst market and average/largest win and loss: done for the loaded window. "Biggest fall" (maximum drawdown): not built |
 | Save, watch and compare wallets | Done (stored in the browser) |
 | Portfolio and margin overview | Partial (balance, locked, position value) |
 | Dark mode, fast, no clutter | Done |

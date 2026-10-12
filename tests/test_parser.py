@@ -32,6 +32,15 @@ class ParserTests(unittest.TestCase):
         self.assertEqual((btc.initial_margin_x, btc.maintenance_margin_x), (15.0, 25.0))
         self.assertTrue(len(btc.orders) > 300)
 
+    def test_order_leverage_and_expiry_columns(self):
+        orders = self.snap.perps[1].orders
+        lev = [o.leverage for o in orders if o.leverage is not None]
+        self.assertGreater(len(lev), 100)  # the leverage column, not the post-only flag
+        self.assertGreater(len(set(lev)), 5)  # many different values, so this is the leverage column and not a flag column
+        self.assertIn(10.0, lev)
+        self.assertTrue(all(x >= 0 for x in lev))
+        self.assertTrue(any(o.expiry_block for o in orders))
+
     def test_open_interest_matches(self):
         bad = [c for c in check_open_interest(self.snap) if not c.ok]
         self.assertEqual(bad, [], bad)

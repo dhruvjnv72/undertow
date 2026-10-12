@@ -20,7 +20,9 @@ between the price and their own.
   signals computed against the live mark. Needs `pip install websockets`.
 * **Radar**: liquidation zones, a plain-language warning, a cascade simulator (a labelled worst-case estimate).
 * **Trade**: order preview with liquidation price, zones in your path, fees, funding per day and slippage. It never sends an order.
-* **Markets / Protocol / Wallets / Bot**: market table; exchange-wide numbers (volume, fees, deposits, liquidations via the Envio
+* **Wallets**: look up any address: positions with when each was opened, liquidation distance, zones in its path, open (resting) orders, and its position history
+  with win rate, profit factor, streaks and holding time (read straight from the chain into a local database).
+* **Markets / Protocol / Bot**: market table; exchange-wide numbers (volume, fees, deposits, liquidations via the Envio
   indexer); wallet search with watchlist and compare; the market-making bot's state.
 * **Checks**: `python -m undertow.verify` (or the button on the Protocol tab) compares our numbers with Perpl's own public API.
 
@@ -29,9 +31,10 @@ Needs `perpl-cli` (`cargo install perpl-cli`).
 
     start_dashboard.bat                      # Windows: double-click; starts the dashboard and opens the browser
     python -m undertow.server --refresh      # same thing from a terminal; data refreshes itself every ~45 s
+    python -m undertow.history_loader --days 7   # load more wallet history (the dashboard loads 1 day by itself); --check verifies it
     python -m undertow.verify                # correctness checks against Perpl's REST API
     python -m undertow.bot --paper           # paper bot (reads the data the server keeps fresh)
-    python -m unittest discover -s tests     # 79 tests
+    python -m unittest discover -s tests     # 112 tests
 
 If the default Monad RPC is slow, rate-limited or unreachable, set `UNDERTOW_RPC` (for example `https://rpc2.monad.xyz`, or your own
 Alchemy URL): `$env:UNDERTOW_RPC="https://rpc2.monad.xyz"`. On the machine this was built on, `rpc.monad.xyz` was unreachable at times.
@@ -78,4 +81,4 @@ Never commit keys. `data/` is git-ignored.
 
 Data is a rolling snapshot (fresh to about a minute, not to the block). The cascade simulator is not validated against a real
 historical liquidation. Liquidation-aware order rules are checked about once a minute and live inside Undertow, not on Perpl.
-Wallet profit-and-loss statistics (win rate, profit factor) are not built.
+Wallet statistics cover only the history loaded so far and are price profit and funding only (no trading fees or rebates).

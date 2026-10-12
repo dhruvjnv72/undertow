@@ -1,5 +1,10 @@
-# Needed for the Live tab (Perpl's WebSocket feed). The rest of the dashboard uses only the standard library.
+# Live tab (Perpl's WebSocket feed)
 websockets>=13
+# Wallet history (decodes position events straight from the chain)
+eth-abi>=5
+eth-utils>=5
+eth-hash[pycryptodome]>=0.7
+# The rest of the dashboard uses only the standard library.
 # Optional: PDFs in docs/ (reportlab, pymupdf) and undertow/testnet.py (eth-account)
 # reportlab
 # pymupdf

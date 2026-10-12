@@ -27,13 +27,29 @@ def query(gql: str, variables: dict | None = None, timeout: int = 10) -> dict | 
     return out.get("data") if "errors" not in out else None
 
 
-NUMERIC = ("volumeUsd", "makerFeesUsd", "amountUsd", "makerFeeUsd", "liquidatedUsd", "depositsUsd", "withdrawalsUsd", "liqPrice", "markPrice",
+NUMERIC = ("volumeUsd", "makerFeesUsd", "amountUsd", "makerFeeUsd", "price", "sizeBefore", "sizeAfter", "leverage", "realizedPnlUsd", "fundingPaidUsd", "liquidatedUsd", "depositsUsd", "withdrawalsUsd", "liqPrice", "markPrice",
            "liquidatedSize", "remainingSize", "notionalUsd")
 
 
 def _num(rows: list[dict]) -> list[dict]:
     """Hasura returns Postgres numerics as strings; convert the ones we do arithmetic on."""
     return [{k: (float(v) if k in NUMERIC and v is not None else v) for k, v in r.items()} for r in rows]
+
+
+def wallet_events(account_id: int) -> dict | None:
+    """Every PositionEvent the indexer has for one account, oldest first, plus how much time the indexer covers.
+    None if the indexer is not running."""
+    cid = config.CHAIN_ID
+    d = query("""query($c:Int!,$a:Int!){
+      PositionEvent(where:{chainId:{_eq:$c}, accountId:{_eq:$a}}, order_by:[{block:asc}], limit:5000){
+        id kind side perpName price sizeBefore sizeAfter leverage realizedPnlUsd fundingPaidUsd block timestamp }
+      first:Trade(where:{chainId:{_eq:$c}}, order_by:{timestamp:asc}, limit:1){ timestamp block }
+      last:Trade(where:{chainId:{_eq:$c}}, order_by:{timestamp:desc}, limit:1){ timestamp block }
+    }""", {"c": cid, "a": account_id})
+    if not d or not d["first"]:
+        return None
+    return {"events": _num(d["PositionEvent"]), "window_start_ts": d["first"][0]["timestamp"],
+            "indexed_through_ts": d["last"][0]["timestamp"], "indexed_through_block": d["last"][0]["block"]}
 
 
 def wallet_activity(account_id: int) -> dict | None:

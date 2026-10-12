@@ -1,22 +1,11 @@
-# Undertow dashboard + data refresher in one container.
-#   docker build -t undertow .
-#   docker run -p 8000:8000 undertow            # then open http://localhost:8000
-# The first data refresh takes about a minute. Read-only app: no keys, no order sending.
-
-FROM rust:1-slim-bookworm AS cli
-RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN cargo install perpl-cli --version 0.2.9 --locked
-
+# Hugging Face Space build (branch hf-space). Downloads the prebuilt Perpl CLI and verifies its checksum instead of compiling it.
 FROM python:3.13-slim-bookworm
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
-COPY --from=cli /usr/local/cargo/bin/perpl-cli /usr/local/bin/perpl-cli
-WORKDIR /app
-# Live tab (Perpl WebSocket feed). Without it the rest of the dashboard still works.
-RUN pip install --no-cache-dir websockets     && useradd -m -u 1000 user && mkdir -p /app/data && chown -R user:user /app
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL -o /usr/local/bin/perpl-cli https://raw.githubusercontent.com/dhruvjnv72/undertow/main/vendor/perpl-cli-0.2.9-linux-amd64     && echo "82d4ff77dec3fac9c6b3e586820733e2743c1fa2fa80105018dcd3ce04edfd15  /usr/local/bin/perpl-cli" | sha256sum -c -     && chmod 755 /usr/local/bin/perpl-cli     && pip install --no-cache-dir websockets     && useradd -m -u 1000 user && mkdir -p /app/data && chown -R user:user /app
 USER user
+WORKDIR /app
 COPY --chown=user:user undertow ./undertow
 COPY --chown=user:user abi ./abi
 ENV PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8
-# Set UNDERTOW_RPC to your own endpoint (for example Alchemy) for faster, steadier refreshes.
 EXPOSE 8000
-CMD ["python", "-m", "undertow.server", "--refresh", "--host", "0.0.0.0"]  # port: $PORT if the host sets it, else 8000
+CMD ["python", "-m", "undertow.server", "--refresh", "--host", "0.0.0.0", "--port", "8000"]

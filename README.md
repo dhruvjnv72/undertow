@@ -1,3 +1,14 @@
+---
+title: Undertow
+emoji: 🌊
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 8000
+pinned: false
+short_description: Liquidation radar for Perpl on Monad
+---
+
 # Undertow: liquidation radar for Perpl (Monad)
 
 *See the pull before it takes you.* A read-only risk screen for [Perpl](https://perpl.xyz), a perpetual-futures exchange that runs

@@ -167,7 +167,7 @@
     /* wide screens: every Live panel on one page, edge to edge, like a trading terminal */
     body:not(.notlive) main { max-width: none; padding: 8px 10px 40px; }
     #tab-live { max-width: none; display: grid; gap: 8px; align-items: stretch;
-      grid-template-columns: minmax(0, 1fr) minmax(300px, 24vw) minmax(300px, 24vw);
+      grid-template-columns: minmax(0, 1fr) clamp(250px, 15vw, 310px) clamp(300px, 18vw, 380px);
       grid-template-areas: "strip strip strip" "left book trades" "left book signals" "alerts zones zones" "foot foot foot"; }
     #tab-live .lleft { grid-area: left; }
     #tab-live .lhead { grid-area: strip; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 16px; }

@@ -79,7 +79,7 @@
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
   .err { color: var(--long); }
   .mono { font-family: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0; }
-  .up { color: var(--short); } .dn { color: var(--long); }
+  .up { color: #19e08c; } .dn { color: #ff4b4b; }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel2); }
   .dotl { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
   .pill.on .dotl { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: pulse 1.2s infinite; }
@@ -100,7 +100,7 @@
   .chg { font-size: 16px; font-weight: 700; }
   .hz { display: grid; grid-template-columns: minmax(190px, 24%) 1fr; margin-top: 8px; background: var(--panel); border-radius: var(--radius); }
   .hzl { padding: 12px 16px; border-right: 1px solid var(--line); display: flex; flex-direction: column; justify-content: center; }
-  #l-last { font-size: clamp(24px, 2.3vw, 36px); white-space: nowrap; font-weight: 700; line-height: 1.1; transition: color .25s; }
+  #l-last { font-weight: 800; font-size: clamp(26px, 2.5vw, 40px); white-space: nowrap; font-weight: 700; line-height: 1.1; transition: color .25s; }
   .hzr { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px 10px; padding: 12px 14px; align-items: start; }
   .sb .k { font-size: 11px; border-bottom: 1px dotted #444; display: inline-block; margin-bottom: 3px; }
   .sb .k.sub { border: 0; display: block; font-size: 10px; margin: 2px 0 0; }
@@ -127,11 +127,11 @@
   .lad .lh { color: var(--muted); font-size: 12px; padding-top: 4px; padding-bottom: 6px; }
   .lad .lh span:not(:first-child), .lad .lr span { text-align: right; }
   .lad .lr span:nth-child(2) { text-align: left; }  /* the bar is the first child, so the price is the 2nd */
-  .lad .lr { position: relative; font-size: 12.5px; line-height: 21px; }
+  .lad .lr { position: relative; font-size: 14px; line-height: 27px; font-weight: 500; }
   .lad .lr span { position: relative; z-index: 1; }
   .lad .lr .bar { position: absolute; right: 0; top: 0; bottom: 0; opacity: .22; }
-  .lad .lmid { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 8px; margin: 3px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0c0c0f; color: var(--muted); font-size: 12px; }
-  .lad .lmid b { font-size: 19px; font-weight: 600; }
+  .lad .lmid { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 8px; margin: 4px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0c0c0f; color: var(--muted); font-size: 12px; }
+  .lad .lmid b { font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -.3px; }
   .lad .lfootb { color: var(--muted); font-size: 11px; padding: 6px 8px 0; }
   .bookmid { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; color: var(--muted); font-size: 12px; padding-top: 8px; }
   .tape { font-size: 13px; max-height: 420px; overflow: hidden; }
@@ -168,7 +168,7 @@
     body:not(.notlive) main { max-width: none; padding: 8px 10px 40px; }
     #tab-live { max-width: none; display: grid; gap: 8px; align-items: stretch;
       grid-template-columns: minmax(0, 1fr) clamp(250px, 15vw, 310px) clamp(300px, 18vw, 380px);
-      grid-template-areas: "strip strip strip" "left book trades" "left book signals" "alerts zones zones" "foot foot foot"; }
+      grid-template-areas: "strip strip strip" "left book trades" "left book signals" "bottom bottom bottom" "foot foot foot"; }
     #tab-live .lleft { grid-area: left; }
     #tab-live .lhead { grid-area: strip; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 16px; }
     #tab-live .lh-top { display: contents; } #tab-live .lh-top > div { order: 2; } #tab-live .lhead .hz { order: 1; flex: 1; margin: 0; background: none; border-radius: 0; min-width: 0; grid-template-columns: auto 1fr; }
@@ -181,7 +181,7 @@
     #tab-live .pane, #tab-live .pane[hidden] { display: block !important; padding: 0; min-width: 0; }
     #tab-live .pane .lcard { height: 100%; margin: 0; }
     #tab-live #lt-book { grid-area: book; } #tab-live #lt-trades { grid-area: trades; } #tab-live #lt-signals { grid-area: signals; }
-    #tab-live #lt-alerts { grid-area: alerts; } #tab-live #lt-zones { grid-area: zones; }
+    #tab-live .lbottom { grid-area: bottom; display: grid; grid-template-columns: 36fr 64fr; gap: 8px; } #tab-live .lbottom .pane { min-width: 0; }
     #tab-live #lt-book { background: var(--panel); border-radius: var(--radius); padding: 10px 12px; position: relative; min-height: 300px; }
     #tab-live #l-book { position: absolute; inset: 10px 6px; overflow: hidden; }
     .book2 .r { padding: 4px 6px; }
@@ -282,12 +282,14 @@
       <div class="mono" id="l-book"></div>
     </div>
     <div class="pane" id="lt-trades" hidden><div class="lcard"><h3>Trades (live tape)</h3><div class="tape mono" id="l-tape"></div></div></div>
-    <div class="pane" id="lt-zones" hidden><div class="lcard"><h3>Liquidation zones against the LIVE mark</h3><div class="scroll"><table class="lz mono" id="l-zones"></table></div><div class="muted small" id="l-prox" style="margin-top:6px"></div></div></div>
     <div class="pane" id="lt-signals" hidden>
       <div class="lcard"><h3>Momentum, flow, book</h3><div id="l-metrics"></div></div>
       <div class="lcard"><h3>Mark vs oracle, last 10 minutes</h3><div id="l-chart"></div></div>
     </div>
+  </div>
+  <div class="lbottom">
     <div class="pane" id="lt-alerts" hidden><div class="lcard"><h3>Alerts <span class="muted" style="text-transform:none;letter-spacing:0">(our thresholds, not Perpl's)</span></h3><div class="alerts mono" id="l-alerts"></div></div></div>
+    <div class="pane" id="lt-zones" hidden><div class="lcard"><h3>Liquidation zones against the LIVE mark</h3><div class="scroll"><table class="lz mono" id="l-zones"></table></div><div class="muted small" id="l-prox" style="margin-top:6px"></div></div></div>
   </div>
   <div class="lfoot">
     <div class="cta"><button class="cl" id="cta-long">Preview long</button><button class="cs" id="cta-short">Preview short</button></div>

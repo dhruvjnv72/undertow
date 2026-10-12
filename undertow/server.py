@@ -14,6 +14,7 @@ JSON API (all GET):
     /api/protocol                     exchange-wide totals and history since collection started
     /api/bot                          paper/live bot state and recent events
     /api/live?market=1&levels=12     live prices, book, trades and signals (Perpl WebSocket, updated every block)
+    /api/candles?market=1&res=3600&n=120   OHLCV candles (Perpl REST, cached 15 s)
     /api/preview?perp=1&side=Long&usd=100&lev=5[&price=]   order preview (nothing is sent)
     /api/protect?perp=1&side=bid&min=25000&within=1         is a liquidation-aware rule triggered now
 """
@@ -133,7 +134,7 @@ def api_radar(q: dict) -> dict:
     h = risk.headline(snap, perp_id)
     return {"perp_id": perp_id, "name": perp["name"], "mark": mark, "oracle": perp["oracle"], "last": perp["last"],
             "maintenance_x": perp["maintenance_margin_x"], "max_leverage": perp["initial_margin_x"],
-            "zones": [_zone_dict(z, mark) for z in zs], "headline": h["sentence"], "risk": h["risk"],
+            "zones": [_zone_dict(z, mark) for z in zs], "headline": h["sentence"], "risk": h["risk"], "headlines": risk.headlines(snap, perp_id),
             "bids": _depth_curve(snap, perp_id, True), "asks": _depth_curve(snap, perp_id, False)}
 
 
@@ -152,6 +153,11 @@ def api_cascade(q: dict) -> dict:
         d["sentence"] = (f"A move to {fmt_price(c.trigger_price)} triggers ${c.triggered_notional:,.0f} of {word} "
                          f"({c.triggered_positions} positions). Forced orders could push the price to about "
                          f"{fmt_price(c.final_price)}" + (" or beyond: the visible order book runs out." if c.book_exhausted else "."))
+        last = c.rounds[-1]
+        act = "sells into the resting buy orders" if c.side == "Long" else "buys from the resting sell orders"
+        side = "bids" if c.side == "Long" else "asks"
+        d["sentence"] += (f" That forced flow {act}: it uses up ${last.book_taken_usd:,.0f} of the ${last.book_visible_usd:,.0f} visible on the {side} "
+                          f"({last.book_levels} price levels)" + (f", and ${last.unfilled_usd:,.0f} of it finds no resting order at all." if last.unfilled_usd > 0 else "."))
     return d
 
 
@@ -327,6 +333,32 @@ def api_live(q: dict) -> dict:
     return {"status": status, "server_ms": int(time.time() * 1000), "market": {k: v[k] for k in keep}, "signals": sig}
 
 
+_candle_cache: dict = {}
+CANDLE_RES = (60, 300, 900, 1800, 3600, 7200, 14400, 28800, 43200, 86400)
+
+
+def api_candles(q: dict) -> dict:
+    """Candles from Perpl's public REST API (cached 15 s). Prices and volume are already scaled; volume is in USD."""
+    mid, res, n = int(_num(q, "market", 1)), int(_num(q, "res", 3600)), min(int(_num(q, "n", 120)), 1000)  # Perpl serves at most 1,024 candles per request
+    if res not in CANDLE_RES:
+        raise ValueError(f"res must be one of {CANDLE_RES}")
+    key = (mid, res, n)
+    hit = _candle_cache.get(key)
+    if hit and time.time() - hit[0] < 15:
+        return hit[1]
+    mk = LIVE.markets.get(mid)
+    if mk is None:
+        raise ValueError("unknown market (live feed not ready yet)")
+    now = int(time.time() * 1000)
+    raw = live._rest(f"/market-data/{mid}/candles/{res}/{now - (n + 1) * res * 1000}-{now}")["d"]
+    pd = 10 ** mk["pdec"]
+    f = float
+    out = {"market": mid, "res": res, "candles": [{"t": int(c["t"]), "o": f(c["o"]) / pd, "h": f(c["h"]) / pd, "l": f(c["l"]) / pd, "c": f(c["c"]) / pd,
+                                                    "v": f(c["v"]) / 1e6, "n": c.get("n")} for c in raw][-n:]}
+    _candle_cache[key] = (time.time(), out)
+    return out
+
+
 _verify_cache: dict = {"t": 0.0, "out": None}
 
 
@@ -379,7 +411,7 @@ class Handler(BaseHTTPRequestHandler):
                       "/api/radar": lambda: api_radar(q), "/api/cascade": lambda: api_cascade(q),
                       "/api/wallet": lambda: api_wallet(q), "/api/top": lambda: api_top(),
                       "/api/protocol": lambda: api_protocol(), "/api/bot": lambda: api_bot(),
-                      "/api/verify": lambda: api_verify(), "/api/live": lambda: api_live(q), "/api/live/markets": lambda: api_live_markets(), "/api/preview": lambda: api_preview(q), "/api/protect": lambda: api_protect(q)}
+                      "/api/verify": lambda: api_verify(), "/api/live": lambda: api_live(q), "/api/live/markets": lambda: api_live_markets(), "/api/candles": lambda: api_candles(q), "/api/preview": lambda: api_preview(q), "/api/protect": lambda: api_protect(q)}
             if u.path in routes:
                 return self._send(200, json.dumps(routes[u.path](), default=lambda o: asdict(o) if is_dataclass(o)
                                                   else str(o)).encode(), "application/json")

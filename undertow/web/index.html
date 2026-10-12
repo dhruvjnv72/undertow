@@ -7,94 +7,135 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJVbmRlcnRvdyBsb2dvIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwNCIgZmlsbD0iIzE2MWIyMiIvPgogIDxyZWN0IHg9IjEyIiB5PSIxMiIgd2lkdGg9IjQ4OCIgaGVpZ2h0PSI0ODgiIHJ4PSI5NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmEzMjNkIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8IS0tIHN1cmZhY2U6IHRoZSBwcmljZSAtLT4KICA8cGF0aCBkPSJNNjQgMTk2IEMgMTIwIDE2MCwgMTY4IDE2MCwgMjI0IDE5NiBTIDMyOCAyMzIsIDM4NCAxOTYgUyA0MzIgMTY4LCA0NDggMTcyIiBmaWxsPSJub25lIiBzdHJva2U9IiM1YjhjZmYiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik02NCAyMzYgQyAxMjAgMjA0LCAxNjggMjA0LCAyMjQgMjM2IFMgMzI4IDI2OCwgMzg0IDIzNiBTIDQzMiAyMTIsIDQ0OCAyMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNmYjhhNSIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjgiLz4KICA8IS0tIHRoZSBwdWxsIHVuZGVybmVhdGg6IGxpcXVpZGF0aW9uIHpvbmVzLCB0YWxsZXN0IGluIHRoZSBtaWRkbGUgLS0+CiAgPHJlY3QgeD0iMTM2IiB5PSIyOTAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI2MCIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIiBvcGFjaXR5PSIwLjYiLz4KICA8cmVjdCB4PSIyMzQiIHk9IjI5MCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjExNiIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIi8+CiAgPHJlY3QgeD0iMzMyIiB5PSIyOTAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI4MiIgcng9IjEyIiBmaWxsPSIjZTU3MzZiIiBvcGFjaXR5PSIwLjgiLz4KICA8IS0tIHRoZSBwdWxsIGFycm93IC0tPgogIDxwYXRoIGQ9Ik0yNTYgNDUwIEwgMjIyIDQxNCBIIDI5MCBaIiBmaWxsPSIjZTZlZGYzIi8+Cjwvc3ZnPgo=">
 <style>
   :root {
-    --bg: #0e1117; --panel: #161b22; --panel2: #1c232d; --line: #2a323d; --text: #e6edf3; --muted: #8b949e;
-    --accent: #5b8cff; --long: #e5736b; --short: #3fb8a5; --warn: #e3b341; --ok: #3fb950;
+    --bg: #0a0a0a; --panel: #141414; --panel2: #1f1f1f; --line: #262626; --text: #f4f4f5; --muted: #8a8f98;
+    --accent: #1f6fff; --long: #ff3b3b; --short: #00d27a; --warn: #e3b341; --ok: #00d27a;
+    --nav-h: 62px; --radius: 16px;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding-bottom: calc(var(--nav-h) + 8px); }
+  header { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: center; padding: 12px 16px 6px; }
   .brand { font-weight: 700; font-size: 18px; letter-spacing: .3px; }
   .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; }
-  nav { display: flex; gap: 4px; }
-  nav button { background: none; border: 0; color: var(--muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; font: inherit; }
-  nav button.on { background: var(--panel2); color: var(--text); }
-  #status { margin-left: auto; color: var(--muted); font-size: 12px; display: flex; gap: 14px; flex-wrap: wrap; }
+  /* navigation: bottom bar on phones, top bar on wide screens */
+  nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; height: var(--nav-h); background: #0f0f0f; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  nav button { flex: 1; background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; font-size: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0; min-width: 0; }
+  nav button i { font-style: normal; font-size: 18px; line-height: 1; }
+  nav button.on { color: var(--text); }
+  nav button.on i { color: var(--short); }
+  #status { color: var(--muted); font-size: 11px; display: flex; gap: 4px 12px; flex-wrap: wrap; width: 100%; }
   #status b { color: var(--text); font-weight: 600; }
-  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 60px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 8px 14px 40px; }
+  .card { background: var(--panel); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
   .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  select, input[type=text] { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; }
+  select, input[type=text] { background: var(--panel2); color: var(--text); border: 0; border-radius: 10px; padding: 10px 12px; font: inherit; min-height: 40px; }
   input[type=text] { min-width: 340px; flex: 1; }
-  input[type=range] { width: 100%; accent-color: var(--accent); }
-  button.go { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; cursor: pointer; font: inherit; }
+  input[type=range] { width: 100%; accent-color: var(--short); }
+  button.go { background: var(--short); color: #04130b; font-weight: 700; border: 0; border-radius: 12px; padding: 10px 18px; cursor: pointer; font: inherit; font-weight: 700; min-height: 40px; }
   .headline { font-size: 18px; line-height: 1.4; }
   .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-right: 8px; }
-  .b-low { background: #12301c; color: var(--ok); } .b-medium { background: #3a2f10; color: var(--warn); }
-  .b-high { background: #3d1a18; color: var(--long); } .b-none { background: var(--panel2); color: var(--muted); }
+  .b-low { background: #0c2a1c; color: var(--ok); } .b-medium { background: #3a2f10; color: var(--warn); }
+  .b-high { background: #3d1414; color: var(--long); } .b-none { background: var(--panel2); color: var(--muted); }
   .muted { color: var(--muted); } .small { font-size: 12px; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th, td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th:first-child, td:first-child, th.l, td.l { text-align: left; }
   th { color: var(--muted); font-weight: 500; font-size: 12px; }
   tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel2); }
   .long { color: var(--long); } .short { color: var(--short); } .pos { color: var(--ok); } .neg { color: var(--long); }
   .scroll { overflow-x: auto; }
   svg text { fill: var(--muted); font-size: 11px; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } input[type=text] { min-width: 0; } }
-  .warn { background: #3a2f10; border: 1px solid #5a4a18; color: var(--warn); border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 13px; }
+  .warn { background: #241d0a; border-radius: 12px; color: var(--warn); padding: 10px 14px; margin-top: 8px; font-size: 13px; }
   ul.assume { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
-  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
   .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
   .err { color: var(--long); }
   .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-variant-numeric: tabular-nums; }
-  #tab-live { max-width: 1500px; margin: 0 auto; }
-  .tbar { display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: flex-end; }
-  .tbar .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
-  .tbar .v { font-size: 15px; font-weight: 600; }
-  #l-mark { font-size: 30px; font-weight: 700; line-height: 1.1; transition: color .25s; }
   .up { color: var(--short); } .dn { color: var(--long); }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel2); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel2); }
   .dotl { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
   .pill.on .dotl { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: pulse 1.2s infinite; }
   .pill.off .dotl { background: var(--long); }
   @keyframes pulse { 50% { opacity: .35; } }
-  .lgrid { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.1fr) minmax(340px, 1.2fr); gap: 14px; margin-top: 14px; }
-  @media (max-width: 1100px) { .lgrid { grid-template-columns: 1fr; } }
-  .lcard { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  /* underline tabs and timeframe pills */
+  .utabs { display: flex; gap: 22px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+  .utabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: inherit; font-size: 15px; padding: 12px 0 10px; cursor: pointer; white-space: nowrap; }
+  .utabs button.on { color: var(--text); border-bottom-color: var(--text); }
+  .pills { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .pills button { background: none; border: 0; color: var(--text); font: inherit; padding: 7px 13px; border-radius: 8px; cursor: pointer; }
+  .pills button.on { background: var(--panel2); }
+  /* Live screen */
+  #tab-live { max-width: 1500px; margin: 0 auto; }
+  .lhead .lh-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  select.pair { font-size: 18px; font-weight: 700; background: none; padding: 4px 0; min-height: 0; }
+  .lh-price { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: flex-end; justify-content: space-between; margin-top: 4px; }
+  #l-mark { font-size: 36px; font-weight: 700; line-height: 1.1; transition: color .25s; }
+  .chg { font-size: 14px; font-weight: 600; } .k { color: var(--muted); font-size: 11px; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; font-size: 12px; flex: 1; min-width: 220px; max-width: 460px; }
+  .stats > div { display: flex; justify-content: space-between; gap: 8px; } .stats .k { font-size: 12px; } .stats .v { font-weight: 600; text-align: right; }
+  .lbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 12px 0 4px; }
+  #l-candles { width: 100%; touch-action: pan-y; }
+  .lmain { margin-top: 10px; }
+  .pane { padding-top: 10px; }
+  .lcard { background: var(--panel); border-radius: var(--radius); padding: 12px 14px; min-width: 0; margin-bottom: 12px; }
   .lcard h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 600; }
-  .ladder { width: 100%; font-size: 12.5px; }
-  .ladder .r { position: relative; display: grid; grid-template-columns: 1.1fr .9fr .9fr; padding: 1.5px 6px; }
-  .ladder .r > span { position: relative; z-index: 1; text-align: right; }
-  .ladder .r > span:first-child { text-align: left; }
-  .ladder .bar { position: absolute; top: 0; bottom: 0; right: 0; opacity: .22; z-index: 0; }
-  .ladder .mid { padding: 5px 6px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 3px 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
-  .tape { font-size: 12.5px; max-height: 250px; overflow: hidden; }
-  .tape .t { display: grid; grid-template-columns: .8fr .9fr 1fr 1fr; padding: 1px 4px; }
+  .book2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; font-size: 13.5px; }
+  .book2 .hd { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; padding: 8px 4px; }
+  .book2 .r { position: relative; display: flex; justify-content: space-between; padding: 6px 6px; margin-bottom: 2px; border-radius: 4px; }
+  .book2 .r span { position: relative; z-index: 1; }
+  .book2 .bar { position: absolute; top: 0; bottom: 0; opacity: .2; z-index: 0; border-radius: 4px; }
+  .book2 .bids .bar { right: 0; } .book2 .asks .bar { left: 0; }
+  .bookmid { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; color: var(--muted); font-size: 12px; padding-top: 8px; }
+  .tape { font-size: 13px; max-height: 420px; overflow: hidden; }
+  .tape .t { display: grid; grid-template-columns: .8fr .9fr 1fr 1fr; padding: 4px 4px; }
   .tape .t span { text-align: right; } .tape .t span:first-child { text-align: left; }
-  .tape .big { font-weight: 700; background: rgba(91,140,255,.12); }
-  .alerts { max-height: 190px; overflow: hidden; font-size: 12.5px; }
-  .alerts .a { padding: 4px 8px; border-left: 3px solid var(--line); margin-bottom: 4px; background: var(--panel2); border-radius: 0 6px 6px 0; }
+  .tape .big { font-weight: 700; background: rgba(31,111,255,.14); }
+  .alerts { font-size: 13px; }
+  .alerts .a { padding: 8px 10px; border-left: 3px solid var(--line); margin-bottom: 6px; background: var(--panel2); border-radius: 0 10px 10px 0; }
   .alerts .a.alert { border-color: var(--long); } .alerts .a.warn { border-color: var(--warn); } .alerts .a.info { border-color: var(--accent); }
   .alerts .a time { color: var(--muted); margin-right: 8px; }
   .m2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px; margin: 6px 0; }
-  .m2 .k { color: var(--muted); font-size: 10.5px; text-transform: uppercase; } .m2 .v { font-size: 14px; font-weight: 600; }
+  .m2 .k { color: var(--muted); font-size: 10.5px; text-transform: uppercase; } .m2 .v { font-size: 15px; font-weight: 600; }
   .split { height: 7px; border-radius: 4px; background: var(--long); overflow: hidden; margin: 3px 0 2px; } .split > i { display: block; height: 100%; background: var(--short); }
-  .lz td, .lz th { padding: 3px 6px; font-size: 12px; }
+  .lz td, .lz th { padding: 6px 6px; font-size: 12px; }
+  .cta { position: fixed; left: 0; right: 0; bottom: var(--nav-h); z-index: 15; display: flex; gap: 12px; padding: 10px 14px 8px; background: linear-gradient(transparent, var(--bg) 35%); }
+  .cta button { flex: 1; border: 0; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 700; padding: 14px 8px; cursor: pointer; color: #fff; }
+  .cta .cl { background: var(--short); color: #04130b; } .cta .cs { background: var(--long); }
+  .ctanote { text-align: center; color: var(--muted); font-size: 11px; margin: 6px 0 70px; }
+  body.notlive .cta { display: none; }
+  @media (min-width: 900px) {
+    body { padding-bottom: 0; }
+    header { padding: 14px 20px; flex-wrap: nowrap; }
+    nav { position: static; height: auto; background: none; border: 0; gap: 4px; padding: 0; }
+    nav button { flex: none; flex-direction: row; font-size: 14px; padding: 8px 14px; border-radius: 10px; gap: 6px; }
+    nav button i { font-size: 14px; }
+    nav button.on { background: var(--panel2); }
+    #status { margin-left: auto; width: auto; justify-content: flex-end; font-size: 12px; }
+    main { padding: 12px 20px 60px; }
+    .cta { position: static; background: none; padding: 4px 0 0; }
+    .ctanote { margin-bottom: 20px; }
+  }
+  @media (min-width: 1100px) {
+    #tab-live { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(360px, 1fr); gap: 0 24px; align-items: start; }
+    #tab-live .lleft { grid-column: 1; } #tab-live .lright { grid-column: 2; grid-row: 1 / span 2; }
+    #tab-live .lfoot { grid-column: 1 / -1; }
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="brand">Undertow<small>See the pull before it takes you</small></div>
   <nav>
-    <button data-tab="live" class="on">Live</button>
-    <button data-tab="radar">Radar</button>
-    <button data-tab="trade">Trade</button>
-    <button data-tab="markets">Markets</button>
-    <button data-tab="protocol">Protocol</button>
-    <button data-tab="wallet">Wallets</button>
-    <button data-tab="bot">Bot</button>
+    <button data-tab="live" class="on"><i>◉</i>Live</button>
+    <button data-tab="radar"><i>◔</i>Radar</button>
+    <button data-tab="trade"><i>⇅</i>Trade</button>
+    <button data-tab="markets"><i>▤</i>Markets</button>
+    <button data-tab="protocol"><i>◧</i>Protocol</button>
+    <button data-tab="wallet"><i>☰</i>Wallets</button>
+    <button data-tab="bot"><i>⚙</i>Bot</button>
   </nav>
   <div id="status">loading…</div>
 </header>
@@ -102,34 +143,47 @@
 <main>
 <div id="stalebanner" class="warn" hidden style="margin-bottom:16px"></div>
 <section id="tab-live">
-  <div class="lcard">
-    <div class="tbar mono">
-      <div><div class="k">Market</div><select id="l-market" style="padding:3px 6px"></select></div>
-      <div><div class="k">Mark <span id="l-markage" style="text-transform:none"></span></div><div id="l-mark">–</div></div>
-      <div><div class="k">Oracle</div><div class="v" id="l-oracle">–</div></div>
-      <div><div class="k">Last</div><div class="v" id="l-last">–</div></div>
-      <div><div class="k">Bid / Ask</div><div class="v" id="l-ba">–</div></div>
-      <div><div class="k">Spread</div><div class="v" id="l-spread">–</div></div>
-      <div><div class="k">Mark − oracle</div><div class="v" id="l-basis">–</div></div>
-      <div><div class="k">24h</div><div class="v" id="l-24h">–</div></div>
-      <div><div class="k">Open interest</div><div class="v" id="l-oi">–</div></div>
-      <div><div class="k">24h volume</div><div class="v" id="l-vol">–</div></div>
-      <div style="margin-left:auto;text-align:right"><span class="pill off" id="l-conn"><i class="dotl"></i><span>connecting…</span></span><div class="k" id="l-conn2" style="margin-top:4px"></div></div>
+  <div class="lleft">
+    <div class="lhead">
+      <div class="lh-top"><select id="l-market" class="pair"></select>
+        <div style="text-align:right"><span class="pill off" id="l-conn"><i class="dotl"></i><span>connecting…</span></span></div></div>
+      <div class="lh-price mono">
+        <div><div id="l-mark">–</div><div class="chg" id="l-24h">–</div><div class="k">Mark <span id="l-markage"></span></div></div>
+        <div class="stats">
+          <div><span class="k">Oracle</span><span class="v" id="l-oracle">–</span></div>
+          <div><span class="k">Last</span><span class="v" id="l-last">–</span></div>
+          <div style="grid-column:1/-1"><span class="k">Bid / Ask</span><span class="v" id="l-ba">–</span></div>
+          <div><span class="k">Spread</span><span class="v" id="l-spread">–</span></div>
+          <div><span class="k">Mark − oracle</span><span class="v" id="l-basis">–</span></div>
+          <div><span class="k">24h volume</span><span class="v" id="l-vol">–</span></div>
+          <div style="grid-column:1/-1"><span class="k">Open interest</span><span class="v" id="l-oi">–</span></div>
+        </div>
+      </div>
+      <div class="k mono" id="l-conn2" style="margin-top:4px"></div>
     </div>
+    <div class="lbar"><div class="pills" id="l-tf">
+      <button data-res="300">5m</button><button data-res="900">15m</button><button data-res="3600" class="on">1H</button><button data-res="14400">4H</button><button data-res="86400">1D</button></div></div>
+    <div id="l-candles"></div>
+    <div class="legend" id="l-clegend"><span>Candles and volume: Perpl's own candle API. Faint bands: liquidation zones from the positions snapshot (<i class="dot" style="background:var(--long)"></i>longs liquidated if price falls, <i class="dot" style="background:var(--short)"></i>shorts liquidated if price rises). The last candle follows the live mark.</span></div>
   </div>
-  <div class="lgrid">
-    <div class="lcard"><h3>Order book (live, every block)</h3><div class="ladder mono" id="l-book"></div></div>
-    <div>
+  <div class="lright lmain">
+    <div class="utabs" id="l-tabs"><button data-lt="book" class="on">Order Book</button><button data-lt="trades">Trades</button><button data-lt="zones">Zones</button><button data-lt="signals">Signals</button><button data-lt="alerts">Alerts</button></div>
+    <div class="pane" id="lt-book">
+      <div class="book2 mono" id="l-book"></div>
+    </div>
+    <div class="pane" id="lt-trades" hidden><div class="lcard"><h3>Trades (live tape)</h3><div class="tape mono" id="l-tape"></div></div></div>
+    <div class="pane" id="lt-zones" hidden><div class="lcard"><h3>Liquidation zones against the LIVE mark</h3><div class="scroll"><table class="lz mono" id="l-zones"></table></div><div class="muted small" id="l-prox" style="margin-top:6px"></div></div></div>
+    <div class="pane" id="lt-signals" hidden>
+      <div class="lcard"><h3>Momentum, flow, book</h3><div id="l-metrics"></div></div>
       <div class="lcard"><h3>Mark vs oracle, last 10 minutes</h3><div id="l-chart"></div></div>
-      <div class="lcard" style="margin-top:14px"><h3>Trades (live tape)</h3><div class="tape mono" id="l-tape"></div></div>
     </div>
-    <div>
-      <div class="lcard"><h3>Alerts <span class="muted" style="text-transform:none;letter-spacing:0">(our thresholds, not Perpl's)</span></h3><div class="alerts mono" id="l-alerts"></div></div>
-      <div class="lcard" style="margin-top:14px"><h3>Momentum, flow, book</h3><div id="l-metrics"></div></div>
-      <div class="lcard" style="margin-top:14px"><h3>Liquidation zones against the LIVE mark</h3><div class="scroll"><table class="lz mono" id="l-zones"></table></div><div class="muted small" id="l-prox" style="margin-top:6px"></div></div>
-    </div>
+    <div class="pane" id="lt-alerts" hidden><div class="lcard"><h3>Alerts <span class="muted" style="text-transform:none;letter-spacing:0">(our thresholds, not Perpl's)</span></h3><div class="alerts mono" id="l-alerts"></div></div></div>
   </div>
-  <div class="muted small" style="margin-top:12px" id="l-foot"></div>
+  <div class="lfoot">
+    <div class="cta"><button class="cl" id="cta-long">Preview long</button><button class="cs" id="cta-short">Preview short</button></div>
+    <div class="ctanote">Preview only: Undertow shows the risk of an order and never sends one.</div>
+    <div class="muted small" id="l-foot"></div>
+  </div>
 </section>
 
 <section id="tab-radar" hidden>
@@ -180,7 +234,7 @@
     <h2>Order preview: see the risk before you trade</h2>
     <div class="row">
       <label class="muted">Market <select id="t-perp"></select></label>
-      <span><button class="go" id="t-long">Long</button> <button class="go" id="t-short" style="background:var(--panel2)">Short</button></span>
+      <span><button class="go" id="t-long">Long</button> <button class="go" id="t-short">Short</button></span>
       <label class="muted">Size (USD) <input type="text" id="t-usd" value="100" style="min-width:90px;width:90px;flex:none"></label>
       <label class="muted">Limit price <input type="text" id="t-price" placeholder="market" style="min-width:110px;width:110px;flex:none"></label>
     </div>
@@ -257,7 +311,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b
 function showTab(t) {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
   ["live", "radar", "trade", "markets", "protocol", "wallet", "bot"].forEach(n => $("#tab-" + n).hidden = n !== t);
-  liveActive = t === "live"; if (liveActive) liveTick();
+  liveActive = t === "live"; document.body.classList.toggle("notlive", !liveActive); window.scrollTo(0, 0); if (liveActive) liveTick();
   if (t === "trade") initTrade();
   if (t === "markets") loadMarkets(); if (t === "wallet") { loadTop(); loadCompare(); }
   if (t === "protocol") loadProtocol(); if (t === "bot") loadBot();
@@ -374,7 +428,7 @@ async function lookup(q) {
     const w = await api("/api/wallet?q=" + encodeURIComponent(q));
     const watched = getWatch().includes(String(w.account_id));
     let h = `<div class="row"><div><b>Account #${w.account_id}</b> <span class="muted small">${w.address || ""}</span></div>
-      <button class="go" style="padding:4px 12px;background:${watched ? "var(--panel2)" : "var(--accent)"}" onclick="toggleWatch('${w.account_id}')">${watched ? "★ Watching (remove)" : "☆ Watch"}</button></div>
+      <button class="go" style="padding:4px 12px;background:${watched ? "var(--panel2)" : "var(--short)"};${watched ? "color:var(--text)" : ""}" onclick="toggleWatch('${w.account_id}')">${watched ? "★ Watching (remove)" : "☆ Watch"}</button></div>
       <div class="row small muted" style="margin:6px 0 10px"><span>Balance <b style="color:var(--text)">${money(w.balance)}</b></span><span>Locked ${money(w.locked)}</span><span>Open position value <b style="color:var(--text)">${money(w.total_value)}</b></span><span>Unrealised PnL <b class="${w.total_pnl >= 0 ? "pos" : "neg"}">${money(Math.abs(w.total_pnl))}${w.total_pnl < 0 ? " loss" : ""}</b></span></div>`;
     if (w.activity && w.activity.window_start) {
       const a = w.activity;
@@ -564,7 +618,7 @@ async function initTrade() {
   syncLev(); sideBtns(); runPreview(); runProtect();
 }
 function syncLev() { const o = $("#t-perp").selectedOptions[0]; const mx = o ? +o.dataset.lev : 15; $("#t-lev").max = mx; if (+$("#t-lev").value > mx) $("#t-lev").value = mx; $("#t-levval").textContent = $("#t-lev").value + "x"; }
-function sideBtns() { $("#t-long").style.background = tSide === "Long" ? "var(--accent)" : "var(--panel2)"; $("#t-short").style.background = tSide === "Short" ? "var(--accent)" : "var(--panel2)"; }
+function sideBtns() { $("#t-long").style.cssText = tSide === "Long" ? "background:var(--short)" : "background:var(--panel2);color:var(--text)"; $("#t-short").style.cssText = tSide === "Short" ? "background:var(--long);color:#fff" : "background:var(--panel2);color:var(--text)"; }
 async function runPreview() {
   const q = `perp=${$("#t-perp").value}&side=${tSide}&usd=${encodeURIComponent($("#t-usd").value)}&lev=${$("#t-lev").value}&price=${encodeURIComponent($("#t-price").value)}`;
   try {
@@ -602,7 +656,7 @@ async function liveInit() {
   const r = await api("/api/live/markets");
   $("#l-market").innerHTML = r.markets.filter(m => m.live_book).map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
   if ($("#l-market").querySelector(`option[value="${liveMarket}"]`)) $("#l-market").value = liveMarket; else liveMarket = +$("#l-market").value;
-  $("#l-market").onchange = () => { liveMarket = +$("#l-market").value; liveLast = null; alertLog = []; seenAlerts = new Set(); };
+  $("#l-market").onchange = () => { liveMarket = +$("#l-market").value; liveLast = null; candles = []; candleMkt = null; alertLog = []; seenAlerts = new Set(); };
   liveReady = true;
 }
 async function liveTick() {
@@ -620,6 +674,60 @@ async function liveTick() {
 }
 setInterval(liveTick, 500);
 
+/* ---------- live: candles with volume, current-price line and liquidation-zone bands ---------- */
+let candleRes = 3600, candles = [], candleMkt = null, candleBusy = false, candleAt = 0, liveZones = [], liveMarkNow = null;
+document.querySelectorAll("#l-tf button").forEach(b => b.onclick = () => {
+  candleRes = +b.dataset.res; document.querySelectorAll("#l-tf button").forEach(x => x.classList.toggle("on", x === b)); candles = []; loadCandles(true);
+});
+document.querySelectorAll("#l-tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#l-tabs button").forEach(x => x.classList.toggle("on", x === b));
+  ["book", "trades", "zones", "signals", "alerts"].forEach(n => $("#lt-" + n).hidden = n !== b.dataset.lt);
+});
+async function loadCandles(force) {
+  if (candleBusy || (!force && candleMkt === liveMarket && Date.now() - candleAt < 15000)) return;
+  candleBusy = true;
+  try {
+    const mk = liveMarket, r = await api(`/api/candles?market=${mk}&res=${candleRes}&n=120`);
+    if (mk === liveMarket && r.res === candleRes) { candles = r.candles; candleMkt = mk; candleAt = Date.now(); drawCandles(); }
+  } catch (e) { $("#l-candles").innerHTML = `<div class="muted small" style="padding:30px 0">Candles unavailable: ${esc(e.message)}</div>`; candleAt = Date.now(); candleMkt = liveMarket; }
+  candleBusy = false;
+}
+function drawCandles() {
+  const el = $("#l-candles"); if (!candles.length) return;
+  const W = el.clientWidth || 360, H = W < 600 ? 320 : 400, R = 66, T = 8, B = 20, VH = 54, nvis = W < 500 ? 55 : 110;
+  const cs = candles.slice(-nvis).map(c => ({ ...c })), last = cs[cs.length - 1];
+  if (liveMarkNow && last.t + candleRes * 1000 > Date.now()) { last.c = liveMarkNow; last.h = Math.max(last.h, liveMarkNow); last.l = Math.min(last.l, liveMarkNow); }
+  const dc = dp(liveMarkNow || last.c);
+  let lo = Math.min(...cs.map(c => c.l)), hi = Math.max(...cs.map(c => c.h)); const mk0 = liveMarkNow || last.c;
+  liveZones.forEach(z => { if (Math.abs(z.distance_pct) <= 3) { lo = Math.min(lo, z.low); hi = Math.max(hi, z.high); } });  // keep zones within 3% of the price on screen
+  const pad = (hi - lo) * .06 || hi * 1e-3; lo -= pad; hi += pad;
+  const pb = H - B - VH - 8, y = v => T + (hi - v) / (hi - lo) * (pb - T), bw = (W - R) / cs.length, x = i => (i + .5) * bw;
+  const vmax = Math.max(1e-9, ...cs.map(c => c.v)), vy = v => H - B - v / vmax * VH;
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Candlestick chart with volume">`;
+  for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4; s += `<line x1="0" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#1c1c1c"/><text x="${W - R + 6}" y="${y(v) + 4}">${pf(v, dc)}</text>`; }
+  const step = Math.max(1, Math.round(cs.length / 4));
+  for (let i = step; i < cs.length; i += step) { const d = new Date(cs[i].t); s += `<line x1="${x(i)}" x2="${x(i)}" y1="${T}" y2="${H - B}" stroke="#171717"/><text x="${x(i)}" y="${H - 5}" text-anchor="middle">${candleRes < 86400 ? d.toTimeString().slice(0, 5) : d.toISOString().slice(5, 10)}</text>`; }
+  liveZones.filter(z => z.high > lo && z.low < hi).forEach(z => {
+    const y0 = Math.max(T, y(Math.min(z.high, hi))), y1 = Math.min(pb, y(Math.max(z.low, lo))), c = z.side === "Long" ? "var(--long)" : "var(--short)";
+    s += `<rect x="0" y="${y0}" width="${W - R}" height="${Math.max(3, y1 - y0)}" fill="${c}" opacity=".13"><title>${z.side} zone ${pf(z.low, dc)}–${pf(z.high, dc)}: ${money(z.notional)}</title></rect><text x="4" y="${y0 + 10}" style="fill:${c};font-size:10px">${z.side === "Long" ? "longs" : "shorts"} ${money(z.notional)}</text>`;
+  });
+  cs.forEach((c, i) => {
+    const up = c.c >= c.o, col = up ? "var(--short)" : "var(--long)", bt = y(Math.max(c.o, c.c)), bh = Math.max(1, Math.abs(y(c.o) - y(c.c))), w = Math.max(1, bw * .62);
+    s += `<line x1="${x(i)}" x2="${x(i)}" y1="${y(c.h)}" y2="${y(c.l)}" stroke="${col}"/><rect x="${x(i) - w / 2}" y="${bt}" width="${w}" height="${bh}" fill="${col}"/><rect x="${x(i) - w / 2}" y="${vy(c.v)}" width="${w}" height="${H - B - vy(c.v)}" fill="${col}" opacity=".85"><title>${new Date(c.t).toISOString().slice(0, 16).replace("T", " ")} UTC · O ${pf(c.o, dc)} H ${pf(c.h, dc)} L ${pf(c.l, dc)} C ${pf(c.c, dc)} · volume ${money(c.v)}</title></rect>`;
+  });
+  const py = y(last.c);
+  s += `<line x1="0" x2="${W - R}" y1="${py}" y2="${py}" stroke="var(--accent)" stroke-dasharray="4 3"/><rect x="${W - R}" y="${py - 10}" width="${R}" height="20" rx="3" fill="var(--accent)"/><text x="${W - R + 4}" y="${py + 4}" style="fill:#fff;font-weight:600">${pf(last.c, dc)}</text></svg>`;
+  el.innerHTML = s;
+}
+window.addEventListener("resize", () => { if (liveActive) drawCandles(); });
+$("#cta-long").onclick = () => previewFromLive("Long");
+$("#cta-short").onclick = () => previewFromLive("Short");
+function previewFromLive(side) {
+  tSide = side;
+  if (liveLast && liveLast.perp != null) { perp = liveLast.perp; $("#perp").value = perp; if (tReady) { $("#t-perp").value = perp; } }
+  showTab("trade");
+}
+
 function flashClass(now, prev) { return prev == null || now === prev ? "" : now > prev ? "up" : "dn"; }
 function renderLive(d) {
   const st = d.status, m = d.market, g = d.signals, dc = dp(m.mark);
@@ -635,15 +743,17 @@ function renderLive(d) {
   $("#l-ba").textContent = `${pf(m.best_bid, dc)} / ${pf(m.best_ask, dc)}`;
   $("#l-spread").textContent = g.spread_bps == null ? "–" : g.spread_bps.toFixed(2) + " bps";
   const bs = g.basis_bps; $("#l-basis").textContent = bs == null ? "–" : (bs >= 0 ? "+" : "") + bs.toFixed(1) + " bps"; $("#l-basis").className = "v " + (bs > 0 ? "up" : bs < 0 ? "dn" : "");
-  const c24 = g.change_24h_pct; $("#l-24h").textContent = c24 == null ? "–" : pct(c24, 2); $("#l-24h").className = "v " + (c24 >= 0 ? "up" : "dn");
+  const c24 = g.change_24h_pct; $("#l-24h").textContent = c24 == null ? "–" : pct(c24, 2); $("#l-24h").className = "chg " + (c24 >= 0 ? "up" : "dn");
   $("#l-oi").textContent = `${pf(m.open_interest, 3)} (${money(m.open_interest * m.mark)})`; $("#l-vol").textContent = money(m.volume_24h_usd);
 
-  // order book ladder
+  // order book, side by side: buy left, sell right
   const mx = Math.max(...m.bids.map(x => x.cum), ...m.asks.map(x => x.cum), 1e-9), sz = m.mark > 1000 ? 5 : m.mark > 1 ? 3 : 0;
-  const row = (x, side) => `<div class="r"><div class="bar" style="width:${(x.cum / mx * 100).toFixed(1)}%;background:var(--${side === "ask" ? "long" : "short"})"></div><span class="${side === "ask" ? "dn" : "up"}">${pf(x.price, dc)}</span><span>${pf(x.size, sz)}</span><span>${pf(x.cum, sz)}</span></div>`;
+  const bar = (x, side) => `<div class="bar" style="width:${(x.cum / mx * 100).toFixed(1)}%;background:var(--${side === "ask" ? "long" : "short"})"></div>`;
   const spr = m.best_ask && m.best_bid ? m.best_ask - m.best_bid : 0;
-  $("#l-book").innerHTML = `<div class="r muted" style="font-size:11px"><span>Price</span><span>Size</span><span>Total</span></div>` + [...m.asks].reverse().map(x => row(x, "ask")).join("") +
-    `<div class="mid"><span>spread ${pf(spr, dc)}</span><span>book ${m.book_age_ms == null ? "–" : m.book_age_ms + " ms"} old · block ${m.book_block.toLocaleString()}</span></div>` + m.bids.map(x => row(x, "bid")).join("");
+  $("#l-book").innerHTML = `<div class="hd"><span>Buy · Amount</span><span>Price</span></div><div class="hd"><span>Price</span><span>Sell · Amount</span></div>` +
+    `<div class="bids">${m.bids.map(x => `<div class="r" title="cumulative ${pf(x.cum, sz)}">${bar(x, "bid")}<span>${pf(x.size, sz)}</span><span class="up">${pf(x.price, dc)}</span></div>`).join("")}</div>` +
+    `<div class="asks">${m.asks.map(x => `<div class="r" title="cumulative ${pf(x.cum, sz)}">${bar(x, "ask")}<span class="dn">${pf(x.price, dc)}</span><span>${pf(x.size, sz)}</span></div>`).join("")}</div>` +
+    `<div class="bookmid" style="grid-column:1/-1"><span>spread ${pf(spr, dc)}</span><span>book ${m.book_age_ms == null ? "–" : m.book_age_ms + " ms"} old · block ${m.book_block.toLocaleString()}</span></div>`;
 
   // chart
   const h = m.history; if (h.length > 2) {
@@ -685,7 +795,8 @@ function renderLive(d) {
   const px = g.liq_proximity["0.5%"], px1 = g.liq_proximity["1%"];
   $("#l-prox").textContent = px ? `Positions within 0.5% of liquidation: longs ${px.long_count} (${money(px.long_usd)}), shorts ${px.short_count} (${money(px.short_usd)}) · within 1%: longs ${money(px1.long_usd)}, shorts ${money(px1.short_usd)}` : "";
   $("#l-foot").innerHTML = `Prices, order book and trades: Perpl's live WebSocket feed, pushed every block, shown at most 0.5 s after they arrive. Liquidation zones: positions snapshot ${g.snapshot_age_s == null ? "not available" : Math.round(g.snapshot_age_s) + " s old"}, re-measured against the live mark on every update. Positions opened or closed since the snapshot are not reflected. Alert thresholds are heuristics. Only the busiest 7 markets stream a live book.`;
-  liveLast = { mark: m.mark };
+  liveZones = g.zones; liveMarkNow = m.mark; loadCandles(); drawCandles();
+  liveLast = { mark: m.mark, perp: m.perp_id };
 }
 
 (async () => { await loadStatus(); try { await initMarkets(); await loadRadar(); } catch (e) { $("#headline").innerHTML = `<span class="err">${esc(e.message)}</span>`; } setInterval(loadStatus, 5000); setInterval(() => { if (!$("#tab-radar").hidden) loadRadar(); }, 30000); })();

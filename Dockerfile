@@ -12,10 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 COPY --from=cli /usr/local/cargo/bin/perpl-cli /usr/local/bin/perpl-cli
 WORKDIR /app
 # Live tab (Perpl WebSocket feed). Without it the rest of the dashboard still works.
-RUN pip install --no-cache-dir websockets
-COPY undertow ./undertow
-COPY abi ./abi
+RUN pip install --no-cache-dir websockets     && useradd -m -u 1000 user && mkdir -p /app/data && chown -R user:user /app
+USER user
+COPY --chown=user:user undertow ./undertow
+COPY --chown=user:user abi ./abi
 ENV PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8
 # Set UNDERTOW_RPC to your own endpoint (for example Alchemy) for faster, steadier refreshes.
 EXPOSE 8000
-CMD ["python", "-m", "undertow.server", "--refresh", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "undertow.server", "--refresh", "--host", "0.0.0.0"]  # port: $PORT if the host sets it, else 8000

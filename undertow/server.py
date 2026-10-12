@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import threading
 import time
 import traceback
@@ -360,7 +361,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     ap = argparse.ArgumentParser(prog="undertow.server")
-    ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)))  # hosts such as Koyeb and Render set PORT
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--refresh", action="store_true", help="refresh data in a background thread")
     ap.add_argument("--rpc")

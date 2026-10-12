@@ -1,0 +1,18 @@
+# FAST build: no Rust compile. Uses the prebuilt Perpl CLI in vendor/ (built from the crates.io release perpl-cli 0.2.9 with
+# `cargo install perpl-cli --version 0.2.9 --locked`; see vendor/README.md for how to verify or rebuild it).
+#   docker build -f Dockerfile.fast -t undertow .
+#   docker run -p 8000:8000 -e UNDERTOW_RPC=https://YOUR-RPC-URL undertow
+# Runs as a normal (non-root) user, as Hugging Face Spaces requires. Listens on $PORT if the host sets it, else 8000.
+FROM python:3.13-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY vendor/perpl-cli-0.2.9-linux-amd64 /usr/local/bin/perpl-cli
+RUN chmod 755 /usr/local/bin/perpl-cli \
+    && pip install --no-cache-dir websockets \
+    && useradd -m -u 1000 user && mkdir -p /app/data && chown -R user:user /app
+USER user
+WORKDIR /app
+COPY --chown=user:user undertow ./undertow
+COPY --chown=user:user abi ./abi
+ENV PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8
+EXPOSE 8000
+CMD ["python", "-m", "undertow.server", "--refresh", "--host", "0.0.0.0"]

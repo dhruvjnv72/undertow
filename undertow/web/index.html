@@ -756,7 +756,7 @@ function drawCandles() {
   });
   cs.forEach((c, i) => {
     const up = c.c >= c.o, col = up ? "var(--short)" : "var(--long)", bt = y(Math.max(c.o, c.c)), bh = Math.max(1, Math.abs(y(c.o) - y(c.c))), w = Math.max(1, bw * .62);
-    s += `<line x1="${x(i)}" x2="${x(i)}" y1="${y(c.h)}" y2="${y(c.l)}" stroke="${col}"/><rect x="${x(i) - w / 2}" y="${bt}" width="${w}" height="${bh}" fill="${col}"/><rect x="${x(i) - w / 2}" y="${vy(c.v)}" width="${w}" height="${H - B - vy(c.v)}" fill="${col}" opacity=".85"><title>${new Date(c.t).toISOString().slice(0, 16).replace("T", " ")} UTC · O ${pf(c.o, dc)} H ${pf(c.h, dc)} L ${pf(c.l, dc)} C ${pf(c.c, dc)} · volume ${money(c.v)}</title></rect>`;
+    s += `<line x1="${Math.floor(x(i)) + .5}" x2="${Math.floor(x(i)) + .5}" y1="${y(c.h)}" y2="${y(c.l)}" stroke="${col}" stroke-width="1" shape-rendering="crispEdges"/><rect x="${x(i) - w / 2}" y="${bt}" width="${w}" height="${bh}" fill="${col}"/><rect x="${x(i) - w / 2}" y="${vy(c.v)}" width="${w}" height="${H - B - vy(c.v)}" fill="${col}" opacity=".85"><title>${new Date(c.t).toISOString().slice(0, 16).replace("T", " ")} UTC · O ${pf(c.o, dc)} H ${pf(c.h, dc)} L ${pf(c.l, dc)} C ${pf(c.c, dc)} · volume ${money(c.v)}</title></rect>`;
   });
   const py = y(last.c), tfName = { 300: "5-minute", 900: "15-minute", 3600: "1-hour", 14400: "4-hour", 86400: "1-day" }[candleRes] || "";
   const wanted = Math.ceil(candleDays * 86400 / candleRes);

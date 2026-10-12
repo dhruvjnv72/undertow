@@ -134,7 +134,7 @@ def api_radar(q: dict) -> dict:
     h = risk.headline(snap, perp_id)
     return {"perp_id": perp_id, "name": perp["name"], "mark": mark, "oracle": perp["oracle"], "last": perp["last"],
             "maintenance_x": perp["maintenance_margin_x"], "max_leverage": perp["initial_margin_x"],
-            "zones": [_zone_dict(z, mark) for z in zs], "headline": h["sentence"], "risk": h["risk"],
+            "zones": [_zone_dict(z, mark) for z in zs], "headline": h["sentence"], "risk": h["risk"], "headlines": risk.headlines(snap, perp_id),
             "bids": _depth_curve(snap, perp_id, True), "asks": _depth_curve(snap, perp_id, False)}
 
 

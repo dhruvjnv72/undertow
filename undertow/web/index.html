@@ -48,6 +48,15 @@
   .long { color: var(--long); } .short { color: var(--short); } .pos { color: var(--ok); } .neg { color: var(--long); }
   .scroll { overflow-x: auto; }
   svg text { fill: var(--muted); font-size: 11px; }
+  .grid65 { display: grid; grid-template-columns: 65fr 35fr; gap: 14px; } .grid65 > * { min-width: 0; }
+  @media (max-width: 900px) { .grid65 { grid-template-columns: 1fr; } }
+  .casc-ctl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .cc { background: var(--panel2); border-radius: var(--radius); padding: 12px 14px; min-width: 0; } .ck { font-weight: 600; margin-bottom: 8px; }
+  .casc-body { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); gap: 18px; }
+  @media (max-width: 900px) { .casc-ctl, .casc-body { grid-template-columns: 1fr; } }
+  .cbar { height: 18px; border-radius: 4px; margin: 4px 0 2px; min-width: 2px; }
+  .cmp .crow { margin-bottom: 12px; } .cmp .verdict { font-size: 15px; margin-top: 4px; }
+  .hl { padding: 6px 0; font-size: 15px; line-height: 1.45; } .hl + .hl { border-top: 1px solid var(--line); }
   .grid2 > * { min-width: 0; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } input[type=text] { min-width: 0; } }
@@ -241,32 +250,38 @@
     </div>
   </div>
   <div class="card">
-    <div class="headline" id="headline"></div>
+    <h2>What the numbers say</h2>
+    <div id="headline"></div>
   </div>
-  <div class="card">
-    <h2>Liquidation zones</h2>
-    <div id="zonechart"></div>
-    <div class="legend"><span><i class="dot" style="background:var(--long)"></i>Longs liquidated if price falls</span>
-      <span><i class="dot" style="background:var(--short)"></i>Shorts liquidated if price rises</span>
-      <span>Bar height = full position value being closed</span></div>
-  </div>
-  <div class="grid2">
+  <div class="grid65">
     <div class="card">
-      <h2>Cascade simulator</h2>
-      <div class="muted small">If the price moves to…</div>
-      <div class="row" style="margin:6px 0"><input type="range" id="move" min="-30" max="30" step="0.5" value="-5"><b id="moveval" style="text-align:right;margin-left:auto"></b></div>
-      <div class="row small muted">
-        <label>Share of liquidations hitting the order book
-          <select id="share"><option value="1">100% (worst case)</option><option value="0.5">50%</option><option value="0.25">25%</option></select></label>
-        <label><input type="checkbox" id="fb" checked> price follows the book (stress)</label>
-      </div>
-      <div id="casc" style="margin-top:12px"></div>
+      <h2>Liquidation zones</h2>
+      <div id="zonechart"></div>
+      <div class="legend"><span><i class="dot" style="background:var(--long)"></i>Longs liquidated if price falls</span>
+        <span><i class="dot" style="background:var(--short)"></i>Shorts liquidated if price rises</span>
+        <span>Bar height = full position value being closed</span></div>
     </div>
     <div class="card">
       <h2>Resting orders (cumulative value)</h2>
       <div id="depthchart"></div>
       <div class="legend"><span><i class="dot" style="background:var(--short)"></i>Buy orders</span><span><i class="dot" style="background:var(--long)"></i>Sell orders</span></div>
     </div>
+  </div>
+  <div class="card">
+    <h2>Cascade simulator: what could a forced chain reaction do?</h2>
+    <div class="muted" style="margin-bottom:14px">Pick a price. Undertow finds every position that would be force-closed on the way there, then pushes those forced orders through the real order book to see how far they could move the price. It is a worst-case estimate, not a forecast.</div>
+    <div class="casc-ctl">
+      <div class="cc"><div class="ck">1 · Target price: where could the price go?</div>
+        <input type="range" id="move" min="-30" max="30" step="0.5" value="-5">
+        <div class="row" style="margin-top:6px"><label class="muted small">or type a price <input type="text" id="movep" style="min-width:0;width:110px;flex:none"></label><b id="moveval" style="margin-left:auto"></b></div></div>
+      <div class="cc"><div class="ck">2 · How much of the forced orders reach the order book?</div>
+        <select id="share"><option value="1">100% (worst case)</option><option value="0.5">50%</option><option value="0.25">25%</option></select>
+        <div class="muted small" id="sharehelp" style="margin-top:6px"></div></div>
+      <div class="cc"><div class="ck">3 · Chain reaction between rounds</div>
+        <label><input type="checkbox" id="fb" checked> price follows the book (stress)</label>
+        <div class="muted small" style="margin-top:6px">Ticked: after each round the price is assumed to move to where the book pushed it, which can liquidate more positions in the next round. Unticked: only the first round is simulated. Perpl's real mark price follows the oracle, so ticked is a stress assumption.</div></div>
+    </div>
+    <div class="casc-body"><div id="cmp"></div><div id="casc"></div></div>
   </div>
   <div class="card">
     <h2>Biggest zones</h2>
@@ -387,27 +402,49 @@ async function initMarkets() {
 }
 $("#perp").onchange = e => { perp = +e.target.value; loadRadar(); };
 $("#band").onchange = $("#span").onchange = () => loadRadar();
-$("#share").onchange = $("#fb").onchange = () => runCascade();
-let deb; $("#move").oninput = () => { updateMoveLabel(); clearTimeout(deb); deb = setTimeout(runCascade, 150); drawZones(); };
+$("#share").onchange = $("#fb").onchange = () => { updateMoveLabel(true); runCascade(); };
+let deb; $("#move").oninput = () => { window.exactTarget = null; updateMoveLabel(); clearTimeout(deb); deb = setTimeout(runCascade, 150); drawZones(); };
 
-function updateMoveLabel() {
+function updateMoveLabel(fromTyping) {
   if (!radar) return; const p = +$("#move").value;
-  $("#moveval").textContent = `${pct(p)}  →  ${price(radar.mark * (1 + p / 100))}`;
+  const tp = window.exactTarget || radar.mark * (1 + p / 100);
+  $("#moveval").textContent = `${pct((tp / radar.mark - 1) * 100)}  →  ${price(tp)}`;
+  if (!fromTyping) $("#movep").value = (radar.mark * (1 + p / 100)).toFixed(radar.mark >= 1000 ? 1 : 4);
+  const s = +$("#share").value * 100;
+  $("#sharehelp").textContent = s >= 100 ? "All of every liquidated position is sold (or bought) into the order book. This is the worst case."
+    : `${s}% of each liquidated position goes through the order book. The other ${100 - s}% is assumed to be absorbed elsewhere (other buyers, deleveraging) and does not move the price.`;
 }
+$("#movep").oninput = () => {
+  const v = parseFloat($("#movep").value.replace(/,/g, ""));
+  if (!radar || !(v > 0)) return;
+  $("#move").value = Math.max(-30, Math.min(30, Math.round((v / radar.mark - 1) * 200) / 2));  // slider steps are 0.5%; the typed price itself is used for the simulation
+  window.exactTarget = v; updateMoveLabel(true); clearTimeout(deb); deb = setTimeout(runCascade, 150); drawZones();
+};
 async function loadRadar() {
   try {
     radar = await api(`/api/radar?perp=${perp}&band=${$("#band").value}`);
     $("#prices").textContent = `mark ${price(radar.mark)} · oracle ${price(radar.oracle)} · last ${price(radar.last)} · up to ${radar.max_leverage}x leverage`;
-    $("#headline").innerHTML = `<span class="badge b-${radar.risk}">${radar.risk === "none" ? "no zones" : radar.risk + " risk"}</span>${esc(radar.headline)}`;
+    $("#headline").innerHTML = (radar.headlines && radar.headlines.length ? radar.headlines : [{ risk: radar.risk, sentence: radar.headline }]).map(h =>
+      `<div class="hl"><span class="badge b-${h.risk}">${h.risk === "none" ? "no zones" : h.risk + " risk"}</span>${esc(h.sentence)}</div>`).join("");
     updateMoveLabel(); drawZones(); drawDepth(); zoneTable(); runCascade();
   } catch (e) { $("#headline").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 }
 async function runCascade() {
   if (!radar) return;
-  const p = +$("#move").value, to = radar.mark * (1 + p / 100);
+  const p = +$("#move").value, to = window.exactTarget || radar.mark * (1 + p / 100);
   try {
     const c = await api(`/api/cascade?perp=${perp}&to=${to}&share=${$("#share").value}&feedback=${$("#fb").checked ? 1 : 0}`);
     window.lastCascade = c; drawZones();
+    const falling = to < radar.mark, sideWord = falling ? "buy orders (bids)" : "sell orders (asks)";
+    const mxv = Math.max(c.liq_between_usd, c.book_between_usd, 1), w = v => Math.max(0.5, v / mxv * 100).toFixed(1) + "%";
+    const ratio = c.book_between_usd > 0 ? c.liq_between_usd / c.book_between_usd : Infinity;
+    $("#cmp").innerHTML = `<div class="cmp"><div class="k" style="margin-bottom:8px">BETWEEN THE MARK (${price(radar.mark)}) AND YOUR TARGET (${price(to)})</div>
+      <div class="crow"><div>Liquidations sitting here: <b>${c.liq_between_positions} ${falling ? "long" : "short"} positions, ${money(c.liq_between_usd)}</b></div><div class="cbar" style="width:${w(c.liq_between_usd)};background:var(--${falling ? "long" : "short"})"></div>
+        <div class="muted small">${falling ? "Longs" : "Shorts"} whose liquidation price is crossed on the way to the target. They have to ${falling ? "sell" : "buy"}.</div></div>
+      <div class="crow"><div>Resting ${sideWord} here: <b>${money(c.book_between_usd)}</b> <span class="muted small">(${c.book_between_levels} price levels)</span></div><div class="cbar" style="width:${w(c.book_between_usd)};background:var(--${falling ? "short" : "long"})"></div>
+        <div class="muted small">The orders that would take the other side of the forced ${falling ? "selling" : "buying"} before the price moves past them.</div></div>
+      <div class="verdict">${c.liq_between_usd === 0 ? "No positions are liquidated before that price." : !isFinite(ratio) ? "There are no resting orders in this stretch: forced orders would run straight through it." :
+        ratio > 1 ? `Forced orders are <b>${ratio.toFixed(1)}×</b> the resting orders here: the book cannot absorb them, so the price would likely run through this stretch.` : `Resting orders are <b>${(1 / ratio).toFixed(1)}×</b> the forced orders here: the book can absorb them, so the price should mostly hold.`}</div></div>`;
     let h = `<div style="font-size:15px">${esc(c.sentence)}</div>`;
     if (c.rounds.length) {
       h += `<div class="scroll"><table style="margin-top:10px"><tr><th class="l">Round</th><th>Price at start</th><th>Positions</th><th>Forced value</th><th title="Resting orders used up so far (cumulative), out of all visible resting orders on the side being hit">Taken from the book</th><th>Price after</th></tr>` +
@@ -431,7 +468,7 @@ function drawZones() {
   zs.forEach(z => { const x0 = Math.max(L, x(z.low)), x1 = Math.min(W - R, x(z.high)); s += `<rect x="${x0 + 1}" y="${y(z.notional)}" width="${Math.max(1, x1 - x0 - 2)}" height="${H - B - y(z.notional)}" fill="var(--${z.side === "Long" ? "long" : "short"})" opacity=".9"><title>${z.side} zone ${price(z.low)}–${price(z.high)}: ${money(z.notional)}, ${z.positions} positions, ${z.accounts} accounts</title></rect>`; });
   for (let i = 0; i <= 6; i++) { const p = lo + (hi - lo) * i / 6; s += `<text x="${x(p)}" y="${H - 8}" text-anchor="middle">${axis(p)}</text>`; }
   s += `<line x1="${x(radar.mark)}" x2="${x(radar.mark)}" y1="${T}" y2="${H - B}" stroke="var(--text)" stroke-width="1.5"/><text x="${x(radar.mark) + 4}" y="${T + 8}" style="fill:var(--text)">mark</text>`;
-  const t = radar.mark * (1 + (+$("#move").value) / 100);
+  const t = window.exactTarget || radar.mark * (1 + (+$("#move").value) / 100);
   s += `<line x1="${x(t)}" x2="${x(t)}" y1="${T}" y2="${H - B}" stroke="var(--accent)" stroke-dasharray="5 4" stroke-width="1.5"/>`;
   const c = window.lastCascade;
   if (c && c.rounds && c.rounds.length && c.final_price > lo && c.final_price < hi && Math.abs(c.final_price - t) > 1e-9)

@@ -236,6 +236,10 @@ class Cascade:
     rounds: list[Round]
     book_exhausted: bool
     assumptions: list[str]
+    liq_between_positions: int = 0  # positions whose liquidation price lies between the mark and the target
+    liq_between_usd: float = 0.0  # their value at the target price (before the "share hitting the book" setting)
+    book_between_usd: float = 0.0  # resting orders on the side that is hit, between the mark and the target
+    book_between_levels: int = 0
 
     @property
     def move_pct(self) -> float:
@@ -279,13 +283,15 @@ def simulate_cascade(snap: dict, perp_id: int, target_price: float, book_share: 
         price = end
         if not feedback or exhausted:
             break
+    first = [p for p in pending if (falling and p["liq_price"] >= target_price) or (not falling and p["liq_price"] <= target_price)]
+    between = [(p, sz) for p, sz in levels if (p >= target_price if falling else p <= target_price)]
     return Cascade(side, target_price, price, len(liquidated), total_n, cum_size, rounds, exhausted_any, [
         f"{book_share:.0%} of each liquidated position is assumed to go through the order book",
         "mark price assumed to follow the book price between rounds" if feedback
         else "first round only: mark price follows the oracle, not the book",
         f"only resting orders within {VISIBLE_DEPTH_PCT:.0f}% of the best price count as depth",
         "resting orders are those at the snapshot moment; makers may pull or add orders as the price moves",
-    ])
+    ], len(first), sum(p["size"] for p in first) * target_price, sum(p * sz for p, sz in between), len(between))
 
 
 # ---------------------------------------------------------------- headline
@@ -325,3 +331,26 @@ def headline(snap: dict, perp_id: int, window_pct: float = 15.0) -> dict:
     if z.top_account_share > 0.6 and z.positions > 1:
         sentence += f" {z.top_account_share:.0%} of this zone is one account."
     return {"sentence": sentence, "risk": risk, "ratio": ratio, "zone": z, "cascade": casc, "depth": depth}
+
+
+def headlines(snap: dict, perp_id: int, n: int = 4, window_pct: float = 15.0) -> list[dict]:
+    """Several plain-language lines: the biggest zone on each side, then the next biggest, each compared with the
+    resting orders between the price and the zone (same rule as `headline`)."""
+    perp = snap["perps"][str(perp_id)]
+    zs = sorted((z for z in zones(snap, perp_id) if abs(z.mid / perp["mark"] - 1) * 100 <= window_pct), key=lambda x: -x.notional)
+    picked = [next((z for z in zs if z.side == side), None) for side in ("Long", "Short")]
+    picked = [z for z in picked if z] + [z for z in zs if z not in picked]
+    out = []
+    for z in picked[:n]:
+        dist = (z.mid / perp["mark"] - 1) * 100
+        far = z.low if z.side == "Long" else z.high
+        reach = max(1.0, abs(far / perp["mark"] - 1) * 100)
+        depth = depth_notional(snap, perp_id, bids=(z.side == "Long"), within_pct=reach)
+        ratio = z.notional / depth if depth else float("inf")
+        risk = "low" if ratio < 0.5 else "medium" if ratio < 2 else "high"
+        sentence = (f"{fmt_usd(z.notional)} of {'longs' if z.side == 'Long' else 'shorts'} {abs(dist):.1f}% {'below' if dist < 0 else 'above'} the price "
+                    f"(around {z.mid:,.0f}). Resting orders between the price and that zone: {fmt_usd(depth)}. Cascade risk: {risk}.")
+        if z.top_account_share > 0.6 and z.positions > 1:
+            sentence += f" {z.top_account_share:.0%} of this zone is one account."
+        out.append({"sentence": sentence, "risk": risk, "side": z.side})
+    return out

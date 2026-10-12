@@ -143,10 +143,12 @@
     #tab-live .pane .lcard { height: 100%; margin: 0; }
     #tab-live #lt-book { grid-area: book; } #tab-live #lt-trades { grid-area: trades; } #tab-live #lt-signals { grid-area: signals; }
     #tab-live #lt-alerts { grid-area: alerts; } #tab-live #lt-zones { grid-area: zones; }
-    #tab-live #lt-book { background: var(--panel); border-radius: var(--radius); padding: 10px 12px; }
+    #tab-live #lt-book { background: var(--panel); border-radius: var(--radius); padding: 10px 12px; position: relative; min-height: 300px; }
+    #tab-live #l-book { position: absolute; inset: 10px 12px; overflow: hidden; align-content: start; }
+    .book2 .r { padding: 4px 6px; }
     #tab-live #lt-signals { display: flex !important; flex-direction: column; gap: 12px; }
     #tab-live .lfoot { grid-area: foot; }
-    .tape { max-height: 260px; }
+    .tape { max-height: 330px; }
   }
 </style>
 </head>
@@ -674,6 +676,7 @@ async function runProtect() {
 }
 
 /* ---------- live terminal ---------- */
+const WIDE = window.matchMedia("(min-width: 1100px)");
 let liveActive = true, liveBusy = false, liveMarket = 1, liveReady = false, liveLast = null, alertLog = [], seenAlerts = new Set();
 const pf = (v, d) => v == null || isNaN(v) ? "–" : Number(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
 function dp(v) { return v >= 1000 ? 1 : v >= 100 ? 2 : v >= 10 ? 3 : v >= 1 ? 4 : v >= .1 ? 5 : 6; }
@@ -690,7 +693,7 @@ async function liveTick() {
   liveBusy = true;
   try {
     if (!liveReady) await liveInit();
-    const d = await api(`/api/live?market=${liveMarket}&levels=12&trades=30`);
+    const d = await api(`/api/live?market=${liveMarket}&levels=${WIDE.matches ? 45 : 12}&trades=${WIDE.matches ? 45 : 30}`);
     renderLive(d);
   } catch (e) {
     $("#l-conn").className = "pill off"; $("#l-conn span").textContent = "no data";
@@ -780,6 +783,11 @@ function renderLive(d) {
     `<div class="bids">${m.bids.map(x => `<div class="r" title="cumulative ${pf(x.cum, sz)}">${bar(x, "bid")}<span>${pf(x.size, sz)}</span><span class="up">${pf(x.price, dc)}</span></div>`).join("")}</div>` +
     `<div class="asks">${m.asks.map(x => `<div class="r" title="cumulative ${pf(x.cum, sz)}">${bar(x, "ask")}<span class="dn">${pf(x.price, dc)}</span><span>${pf(x.size, sz)}</span></div>`).join("")}</div>` +
     `<div class="bookmid" style="grid-column:1/-1"><span>spread ${pf(spr, dc)}</span><span>book ${m.book_age_ms == null ? "–" : m.book_age_ms + " ms"} old · block ${m.book_block.toLocaleString()}</span></div>`;
+
+  if (WIDE.matches) {  // fill the tall book panel: drop levels that would not fit fully
+    const bk = $("#l-book"), bb = bk.querySelectorAll(".bids .r"), aa = bk.querySelectorAll(".asks .r");
+    let n = bb.length; while (n > 4 && bk.scrollHeight > bk.clientHeight + 1) { n--; bb[n].remove(); aa[n].remove(); }
+  }
 
   // chart
   const h = m.history; if (h.length > 2) {

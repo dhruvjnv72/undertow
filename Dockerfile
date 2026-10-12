@@ -11,8 +11,8 @@ FROM python:3.13-slim-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
 COPY --from=cli /usr/local/cargo/bin/perpl-cli /usr/local/bin/perpl-cli
 WORKDIR /app
-# Live tab (Perpl WebSocket feed). Without it the rest of the dashboard still works.
-RUN pip install --no-cache-dir websockets     && useradd -m -u 1000 user && mkdir -p /app/data && chown -R user:user /app
+# websockets: Live tab. eth-abi/eth-utils/eth-hash: wallet history (decodes position events from the chain).
+RUN pip install --no-cache-dir websockets eth-abi eth-utils 'eth-hash[pycryptodome]'     && useradd -m -u 1000 user && mkdir -p /app/data && chown -R user:user /app
 USER user
 COPY --chown=user:user undertow ./undertow
 COPY --chown=user:user abi ./abi

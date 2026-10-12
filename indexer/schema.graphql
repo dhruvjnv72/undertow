@@ -100,3 +100,25 @@ type PerpDailyStats {
   liquidations: Int!
   liquidatedUsd: Float!
 }
+
+# One row per position change of one account: the basis of a wallet's history, realized profit and win rate.
+# kind: opened | increased | decreased | closed | flipped | liquidated | deleveraged
+# realizedPnlUsd is the price profit realized by this change (the contract's deltaPnl); fundingPaidUsd is funding settled by it
+# (positive = paid, from the SDK's own handling of PositionLiquidated). Some events do not carry every field, so those are null.
+type PositionEvent {
+  id: ID!
+  chainId: Int!
+  perpId: Int!
+  perpName: String!
+  accountId: Int!
+  kind: String!
+  side: String!
+  price: Float
+  sizeBefore: Float
+  sizeAfter: Float
+  leverage: Float
+  realizedPnlUsd: Float
+  fundingPaidUsd: Float
+  block: Int!
+  timestamp: Int!
+}

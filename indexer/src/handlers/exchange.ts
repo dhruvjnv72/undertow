@@ -46,6 +46,61 @@ async function bumpPerpDaily(context: Ctx, chainId: number, ts: number, p: { id:
 
 const eid = (e: any) => `${e.chainId}-${e.block.number}-${e.logIndex}`;
 
+const sideOf = (t: bigint | number) => (Number(t) === 0 ? "Long" : "Short");
+
+function posEvent(context: Ctx, e: any, p: { id: number; name: string }, f: {
+  kind: string; accountId: bigint | number; positionType: bigint | number; price?: number; sizeBefore?: number; sizeAfter?: number;
+  leverage?: number; realizedPnlUsd?: number; fundingPaidUsd?: number;
+}) {
+  context.PositionEvent.set({
+    id: eid(e), chainId: e.chainId, perpId: p.id, perpName: p.name, accountId: num(f.accountId), kind: f.kind, side: sideOf(f.positionType),
+    price: f.price ?? undefined, sizeBefore: f.sizeBefore ?? undefined, sizeAfter: f.sizeAfter ?? undefined, leverage: f.leverage ?? undefined,
+    realizedPnlUsd: f.realizedPnlUsd ?? undefined, fundingPaidUsd: f.fundingPaidUsd ?? undefined, block: e.block.number, timestamp: e.block.timestamp,
+  });
+}
+
+indexer.onEvent({ contract: "Exchange", event: "PositionOpenedV2" }, async ({ event, context }) => {
+  const p = perp(event.chainId, event.params.perpId);
+  if (!p) return;
+  posEvent(context, event, p, { kind: "opened", accountId: event.params.accountId, positionType: event.params.positionType,
+    price: price(event.params.pricePNS, p.priceDecimals), sizeBefore: 0, sizeAfter: lots(event.params.lotLNS, p.lotDecimals),
+    leverage: num(event.params.leverageHdths) / 100 });
+});
+
+indexer.onEvent({ contract: "Exchange", event: "PositionIncreasedV2" }, async ({ event, context }) => {
+  const p = perp(event.chainId, event.params.perpId);
+  if (!p) return;
+  posEvent(context, event, p, { kind: "increased", accountId: event.params.accountId, positionType: event.params.positionType,
+    price: price(event.params.pricePNS, p.priceDecimals), sizeBefore: lots(event.params.startLotLNS, p.lotDecimals),
+    sizeAfter: lots(event.params.endLotLNS, p.lotDecimals), leverage: num(event.params.leverageHdths) / 100 });
+});
+
+indexer.onEvent({ contract: "Exchange", event: "PositionDecreased" }, async ({ event, context }) => {
+  const p = perp(event.chainId, event.params.perpId);
+  if (!p) return;
+  posEvent(context, event, p, { kind: "decreased", accountId: event.params.accountId, positionType: event.params.positionType,
+    sizeBefore: lots(event.params.startLotLNS, p.lotDecimals), sizeAfter: lots(event.params.endLotLNS, p.lotDecimals),
+    realizedPnlUsd: num(event.params.deltaPnlCNS) / CNS, fundingPaidUsd: num(event.params.fundingCNS) / CNS });
+});
+
+indexer.onEvent({ contract: "Exchange", event: "PositionClosed" }, async ({ event, context }) => {
+  const p = perp(event.chainId, event.params.perpId);
+  if (!p) return;
+  posEvent(context, event, p, { kind: "closed", accountId: event.params.accountId, positionType: event.params.positionType,
+    price: price(event.params.pricePNS, p.priceDecimals), sizeAfter: 0,
+    realizedPnlUsd: num(event.params.deltaPnlCNS) / CNS, fundingPaidUsd: num(event.params.fundingCNS) / CNS });
+});
+
+indexer.onEvent({ contract: "Exchange", event: "PositionInverted" }, async ({ event, context }) => {
+  const p = perp(event.chainId, event.params.perpId);
+  if (!p) return;
+  // The position flips side: realized profit belongs to the side being closed; the new position is positionType.
+  posEvent(context, event, p, { kind: "flipped", accountId: event.params.accountId, positionType: event.params.positionType,
+    price: price(event.params.pricePNS, p.priceDecimals), sizeBefore: lots(event.params.startLotLNS, p.lotDecimals),
+    sizeAfter: lots(event.params.endLotLNS, p.lotDecimals), leverage: num(event.params.leverageHdths) / 100,
+    realizedPnlUsd: num(event.params.deltaPnlCNS) / CNS, fundingPaidUsd: num(event.params.fundingCNS) / CNS });
+});
+
 indexer.onEvent({ contract: "Exchange", event: "MakerOrderFilledV2" }, async ({ event, context }) => {
   const p = perp(event.chainId, event.params.perpId);
   if (!p) return;
@@ -75,6 +130,10 @@ indexer.onEvent({ contract: "Exchange", event: "PositionLiquidated" }, async ({ 
     remainingSize: lots(event.params.posLotLNS, p.lotDecimals), notionalUsd: liqPrice * size,
     onOrderBook: event.params.onOrderBook, block: event.block.number, timestamp: ts,
   });
+  posEvent(context, event, p, { kind: "liquidated", accountId: event.params.posAccountId, positionType: event.params.positionType,
+    price: liqPrice, sizeBefore: lots(event.params.posLotLNS + event.params.liqLotLNS, p.lotDecimals),
+    sizeAfter: lots(event.params.posLotLNS, p.lotDecimals), realizedPnlUsd: num(event.params.deltaPnlCNS) / CNS,
+    fundingPaidUsd: num(event.params.fundingCNS) / CNS });
   await bumpDaily(context, event.chainId, ts, { liquidations: 1, liquidatedUsd: liqPrice * size });
   await bumpPerpDaily(context, event.chainId, ts, p, { liquidations: 1, liquidatedUsd: liqPrice * size });
 });
@@ -91,6 +150,10 @@ indexer.onEvent({ contract: "Exchange", event: "PositionDeleveragedV2" }, async 
     closedSize: lots(event.params.startLotLNS - event.params.endLotLNS, p.lotDecimals),
     block: event.block.number, timestamp: ts,
   });
+  posEvent(context, event, p, { kind: "deleveraged", accountId: event.params.accountId, positionType: event.params.positionType,
+    price: price(event.params.deleveragePricePNS, p.priceDecimals), sizeBefore: lots(event.params.startLotLNS, p.lotDecimals),
+    sizeAfter: lots(event.params.endLotLNS, p.lotDecimals), realizedPnlUsd: num(event.params.deltaPnlCNS) / CNS,
+    fundingPaidUsd: num(event.params.fundingCNS) / CNS });
   await bumpDaily(context, event.chainId, ts, { deleverages: 1 });
 });
 

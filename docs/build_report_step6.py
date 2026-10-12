@@ -70,7 +70,7 @@ S = [Paragraph("Undertow - final report and your to-do list", H1),
      table([[cell("<b>Piece</b>"), cell("<b>State</b>")],
             [cell("Radar: liquidation zones, plain-language warning, cascade simulator"), cell("Done. Cascade is a labelled worst-case estimate, not validated on a real liquidation")],
             [cell("Trade: order preview (liquidation, zones in your path, fees, funding, slippage)"), cell("Done. Does not send orders")],
-            [cell("Markets, Protocol, Wallets (search, watchlist, compare), Bot tabs"), cell("Done. Wallet profit-and-loss statistics are not built")],
+            [cell("Markets, Protocol, Wallets (search, watchlist, compare), Bot tabs"), cell("Done. Wallet history and statistics added 12 October (see below)")],
             [cell("Liquidation-aware order rules"), cell("Done as a live check and rule engine. Checked about once a minute, not every block; live cancelling untested")],
             [cell("Independent correctness checks against Perpl's REST API"), cell("Done; results below")],
             [cell("Bot"), cell("Paper mode only. Testnet and mainnet need your wallet")],
@@ -114,8 +114,9 @@ S += bullets([
     "<b>Docker image (updated 12 October):</b> now tested end to end locally. The fast build (Dockerfile.fast, a prebuilt Perpl tool, no Rust compile) takes about 15 seconds, runs as a "
     "normal user, and fetched fresh data inside the container through a fallback RPC. What is still untested is each hosting company's own build and run steps.",
     "<b>Bot on testnet:</b> needs a funded wallet (below). Nothing about order placement, cancelling or fills has run on any chain.",
-    "<b>Wallet statistics</b> (win rate, profit factor, streaks, holding time) and trade history are not built. The indexer records only the resting side of each trade and no per-wallet "
-    "profit and loss, so this needs more indexing work. The Perpl Risk Tool bounty lists these, so that entry is incomplete.",
+    "<b>Wallet statistics (updated 12 October):</b> now built from the chain: opened-at time, round trips, win rate, profit factor, streaks and holding time, for the loaded "
+    "history window. Not built: maximum drawdown. The figures are price profit and funding only (trading fees and rebates are not in the events), and a wallet's opening before "
+    "the window shows as 'before ...'.",
     "<b>Several-days-of-live-bot-activity</b> for the API bounty cannot be achieved any more: even if a wallet is funded today there are about 1.5 days left.",
     "<b>Cascade model validation:</b> no real Perpl liquidation has appeared in the indexed window, so the model has never been tested against a real one.",
 ])

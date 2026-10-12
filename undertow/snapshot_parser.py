@@ -31,6 +31,8 @@ class Order:
     post_only: bool = False
     fill_or_kill: bool = False
     immediate_or_cancel: bool = False
+    expiry_block: int | None = None
+    expired: bool = False
 
     @property
     def is_bid(self) -> bool:
@@ -123,21 +125,25 @@ def _parse_perp_meta(perp: Perp, text: str) -> None:
 
 
 def _parse_order(cells: list[str]) -> Order | None:
+    # columns: Price | Size | Type | Order ID | Account ID | Request ID | Client Order ID | Expiry Block | Leverage | PO | FoK | IoC | Builder
     if len(cells) < 10 or not re.match(r"^(Open|Close) (Long|Short)", cells[2]):
         return None
     price, size = _num(cells[0]), _num(cells[1])
     if price is None or size is None:
         return None
+    exp = re.match(r"(\d+)", cells[7])
     return Order(
         price=price,
         size=size,
         kind=cells[2],
         order_id=int(cells[3]),
         account_id=int(cells[4]),
-        leverage=_num(cells[9]),
-        post_only=bool(cells[10]) if len(cells) > 10 else False,
-        fill_or_kill=bool(cells[11]) if len(cells) > 11 else False,
-        immediate_or_cancel=bool(cells[12]) if len(cells) > 12 else False,
+        leverage=_num(cells[8]),
+        post_only=bool(cells[9]),
+        fill_or_kill=bool(cells[10]) if len(cells) > 10 else False,
+        immediate_or_cancel=bool(cells[11]) if len(cells) > 11 else False,
+        expiry_block=int(exp.group(1)) if exp else None,
+        expired="expired" in cells[7],
     )
 
 

@@ -15,3 +15,6 @@ indexer/envio-env.d.ts
 # editor / OS
 .vscode/
 .DS_Store
+
+# local session handoff (transcript, reference screenshots): never publish
+handoff/

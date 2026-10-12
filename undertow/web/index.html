@@ -188,6 +188,48 @@
     #tab-live .lfoot { grid-area: foot; }
     .tape { max-height: 330px; }
   }
+
+  /* ---- density pass: tighter spacing, dividers between sections, font sizes matched to each section ---- */
+  body { font-size: 13.5px; line-height: 1.4; font-feature-settings: "tnum" 1, "cv11" 1; font-synthesis: none; }
+  main { padding-top: 6px; }
+  .card { padding: 10px 14px 12px; margin-bottom: 8px; border-radius: 6px; }
+  .lcard { padding: 8px 12px 10px; margin-bottom: 8px; border-radius: 6px; }
+  h2, .lcard h3 { font-size: 11.5px; letter-spacing: .7px; margin: 0 0 8px; padding-bottom: 7px; border-bottom: 1px solid var(--line); }
+  .lcard h3 { margin-bottom: 6px; }
+  .row { gap: 6px 14px; }
+  select, input[type=text] { min-height: 30px; padding: 4px 10px; border-radius: 5px; border: 1px solid var(--line); }
+  button.go { min-height: 32px; padding: 6px 16px; border-radius: 5px; }
+  th, td { padding: 6px 10px; } th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .4px; }
+  .badge { padding: 1px 8px; font-size: 11.5px; }
+  .grid2, .grid65 { gap: 8px; }
+  .hl { padding: 4px 0; font-size: 14px; }
+  /* radar: cascade simulator */
+  .casc-ctl { gap: 8px; margin-bottom: 10px; align-items: start; }
+  .cc { padding: 8px 12px; border-radius: 5px; border: 1px solid var(--line); background: var(--bg); }
+  .ck { font-size: 13px; margin-bottom: 6px; }
+  .cc .muted.small { font-size: 11.5px; margin-top: 4px !important; line-height: 1.35; }
+  .casc-ctl .row { margin-top: 4px !important; }
+  .casc-body { gap: 0; }
+  .casc-body > #cmp { padding-right: 18px; } .casc-body > #casc { padding-left: 18px; border-left: 1px solid var(--line); }
+  #cmp, #casc { font-size: 15px; } #casc table th, #casc table td { padding: 8px 10px; font-size: 14.5px; } #casc table th { font-size: 12px; }
+  .cmp .crow { margin-bottom: 8px; } .cmp .verdict { font-size: 15.5px; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .cbar { height: 16px; margin: 3px 0 1px; }
+  .bigres { padding: 6px 14px 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid var(--line); background: var(--bg); }
+  .bc + .bc { border-left: 1px solid var(--line); padding-left: 12px; }
+  .bc1 { font-size: 32px; } .bc2, .bc3 { font-size: 20px; }
+  /* live */
+  .hz { margin-top: 4px; }
+  .hzr { gap: 6px 0; padding: 8px 4px; } .sb { padding: 0 12px; } .sb + .sb { border-left: 1px solid var(--line); }
+  .sb .k { margin-bottom: 1px; }
+  .lbar { margin: 8px 0 2px; } .pills button { padding: 4px 10px; }
+  .legend { margin-top: 4px; font-size: 11.5px; }
+  .utabs button { padding: 8px 0 7px; font-size: 14px; }
+  .alerts .a { padding: 5px 10px; margin-bottom: 4px; }
+  .tape .t { padding: 2px 4px; } .m2 { margin: 4px 0; }
+  header { padding-top: 8px; padding-bottom: 4px; }
+  @media (min-width: 900px) { header { padding: 10px 14px; } #status { font-size: 11.5px; } }
+  @media (max-width: 900px) { .casc-ctl, .casc-body { grid-template-columns: minmax(0, 1fr); } .casc-body > #cmp { padding-right: 0; } .casc-body > #casc { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 10px; } .bc + .bc { border-left: 0; padding-left: 0; } .sb + .sb { border-left: 0; } .sb { padding: 0 6px 0 0; } }
+  #cmp, #casc, .cc, .bc, .sb { min-width: 0; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>

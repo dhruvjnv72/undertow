@@ -136,7 +136,7 @@
     nav button i { font-size: 14px; }
     nav button.on { background: var(--panel2); }
     #status { margin-left: auto; width: auto; justify-content: flex-end; font-size: 12px; }
-    main { padding: 12px 20px 60px; }
+    main { max-width: none; padding: 12px 10px 60px; }
     .cta { position: static; background: none; padding: 4px 0 0; }
     .ctanote { margin-bottom: 20px; }
   }
@@ -419,7 +419,7 @@ async function runCascade() {
 function svgOpen(w, h) { return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img">`; }
 function drawZones() {
   if (!radar) return;
-  const W = 760, H = 260, L = 48, R = 10, T = 14, B = 26, span = +$("#span").value / 100;
+  const W = Math.max(320, $("#zonechart").clientWidth || 760), H = 300, L = 48, R = 10, T = 14, B = 26, span = +$("#span").value / 100;
   const lo = radar.mark * (1 - span), hi = radar.mark * (1 + span);
   const x = p => L + (p - lo) / (hi - lo) * (W - L - R);
   const zs = radar.zones.filter(z => z.high > lo && z.low < hi);
@@ -437,7 +437,7 @@ function drawZones() {
   $("#zonechart").innerHTML = s + "</svg>";
 }
 function drawDepth() {
-  const W = 400, H = 220, L = 46, R = 8, T = 10, B = 24, span = radar.mark * 0.15;
+  const W = Math.max(280, $("#depthchart").clientWidth || 400), H = 260, L = 46, R = 8, T = 10, B = 24, span = radar.mark * 0.15;
   const lo = radar.mark - span, hi = radar.mark + span, x = p => L + (p - lo) / (hi - lo) * (W - L - R);
   const bids = radar.bids.filter(b => b[0] >= lo), asks = radar.asks.filter(a => a[0] <= hi);
   const ymax = Math.max(1, bids.length ? bids[bids.length - 1][1] : 0, asks.length ? asks[asks.length - 1][1] : 0) * 1.08;
@@ -526,7 +526,7 @@ function drawEnvio(e) {
     c("Liquidations, 30 days", e.liquidations_30d, money(e.liquidated_usd_30d)) + c("Deposits, 30 days", money(e.deposits_30d)) +
     c("Withdrawals, 30 days", money(e.withdrawals_30d)) + c("Net inflow, 30 days", (e.net_inflow_30d >= 0 ? "+" : "−") + money(Math.abs(e.net_inflow_30d))) +
     c("Accounts created", e.accounts_created.toLocaleString());
-  const d = e.daily, W = 1000, H = 170, L = 56, R = 8, T = 8, B = 22, mx = Math.max(1, ...d.map(x => x.volumeUsd)) * 1.1, bw = (W - L - R) / Math.max(d.length, 1);
+  const d = e.daily, W = Math.max(320, $("#volchart").clientWidth || 1000), H = 190, L = 56, R = 8, T = 8, B = 22, mx = Math.max(1, ...d.map(x => x.volumeUsd)) * 1.1, bw = (W - L - R) / Math.max(d.length, 1);
   let s = svgOpen(W, H);
   for (let i = 1; i <= 3; i++) { const v = mx * i / 3, y = H - B - v / mx * (H - B - T); s += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${money(v)}</text>`; }
   d.forEach((x, i) => { const h = x.volumeUsd / mx * (H - B - T); s += `<rect x="${L + i * bw + 1}" y="${H - B - h}" width="${Math.min(60, Math.max(1, bw - 2))}" height="${h}" fill="var(--accent)"><title>${x.date}: ${money(x.volumeUsd)}, ${x.trades} trades</title></rect>`; });
@@ -544,7 +544,7 @@ function filterRange(h) {
 $("#oirange").onchange = () => drawOI(filterRange(window.oiHistory || []));
 function drawOI(h) {
   if (h.length < 2) { $("#oichart").innerHTML = ""; return; }
-  const W = 1000, H = 220, L = 56, R = 12, T = 12, B = 26;
+  const W = Math.max(320, $("#oichart").clientWidth || 1000), H = 240, L = 56, R = 12, T = 12, B = 26;
   const ys = h.map(p => p.oi_usd), lo = Math.min(...ys) * 0.98, hi = Math.max(...ys) * 1.02 || 1;
   const x = i => L + i / (h.length - 1) * (W - L - R), y = v => H - B - (v - lo) / ((hi - lo) || 1) * (H - B - T);
   let s = svgOpen(W, H);
@@ -780,7 +780,7 @@ function drawCandles() {
   s += `<line x1="0" x2="${W - R}" y1="${py}" y2="${py}" stroke="var(--accent)" stroke-dasharray="4 3"/><rect x="${W - R}" y="${py - 10}" width="${R}" height="20" rx="3" fill="var(--accent)"/><text x="${W - R + 4}" y="${py + 4}" style="fill:#fff;font-weight:600">${pf(last.c, dc)}</text></svg>`;
   el.innerHTML = s;
 }
-window.addEventListener("resize", () => { if (liveActive) drawCandles(); });
+window.addEventListener("resize", () => { if (liveActive) drawCandles(); if (radar && !$("#tab-radar").hidden) { drawZones(); drawDepth(); } if (window.oiHistory && !$("#tab-protocol").hidden) drawOI(filterRange(window.oiHistory)); });
 $("#cta-long").onclick = () => previewFromLive("Long");
 $("#cta-short").onclick = () => previewFromLive("Short");
 function previewFromLive(side) {

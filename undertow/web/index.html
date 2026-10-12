@@ -235,11 +235,20 @@
   h2, .lcard h3 { font-weight: 800; font-size: 12.5px; letter-spacing: .7px; color: #d4d7de; }
   .ck { font-weight: 700; } th { font-weight: 700; color: #aab0ba; } .bc .k, .sb .k, .hzl .k { font-weight: 600; } .utabs button.on { font-weight: 700; }
   .casc-ctl { align-items: stretch; }  /* the three control boxes share one height */
+  /* brand: logo mark + wordmark + badge, clearly separate from the navigation (like Perpl's header) */
+  .logo { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; color: var(--text); }
+  .logo .wm { font-size: 24px; font-weight: 800; letter-spacing: -.4px; line-height: 1; }
+  .logo .tag { font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid #3a3a42; border-radius: 5px; padding: 2px 7px; }
+  .vsep { display: none; width: 1px; height: 26px; background: var(--line); }
+  @media (min-width: 900px) { .vsep { display: inline-block; } nav { margin-left: 4px; } }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">Undertow<small>See the pull before it takes you</small></div>
+  <a class="logo" href="#live" title="Undertow: see the pull before it takes you" onclick="showTab('live');return false">
+    <svg viewBox="2 5 28 26" width="30" height="28" aria-hidden="true"><path d="M3 6H11V20H21V14H29V24L23 30H9L3 24Z" fill="#3d7bff"/><rect x="21" y="6" width="8" height="5" fill="#ff4b4b"/></svg>
+    <span class="wm">Undertow</span><span class="tag">Read-only</span></a>
+  <span class="vsep"></span>
   <nav>
     <button data-tab="live" class="on"><i>◉</i>Live</button>
     <button data-tab="radar"><i>◔</i>Radar</button>

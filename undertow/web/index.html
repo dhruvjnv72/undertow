@@ -356,6 +356,8 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b
 function showTab(t) {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
   ["live", "radar", "trade", "markets", "protocol", "wallet", "bot"].forEach(n => $("#tab-" + n).hidden = n !== t);
+  try { history.replaceState(null, "", "#" + t); } catch (e) { /* ignore */ }
+  if (t === "radar" && radar) { drawZones(); drawDepth(); }
   liveActive = t === "live"; document.body.classList.toggle("notlive", !liveActive); window.scrollTo(0, 0); if (liveActive) liveTick();
   if (t === "trade") initTrade();
   if (t === "markets") loadMarkets(); if (t === "wallet") { loadTop(); loadCompare(); }
@@ -418,7 +420,7 @@ async function runCascade() {
 
 function svgOpen(w, h) { return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img">`; }
 function drawZones() {
-  if (!radar) return;
+  if (!radar || !$("#zonechart").clientWidth) return;  // hidden tab: draw when it is shown, so sizes are right from the start
   const W = Math.max(320, $("#zonechart").clientWidth || 760), H = 300, L = 48, R = 10, T = 14, B = 26, span = +$("#span").value / 100;
   const lo = radar.mark * (1 - span), hi = radar.mark * (1 + span);
   const x = p => L + (p - lo) / (hi - lo) * (W - L - R);
@@ -437,6 +439,7 @@ function drawZones() {
   $("#zonechart").innerHTML = s + "</svg>";
 }
 function drawDepth() {
+  if (!$("#depthchart").clientWidth) return;
   const W = Math.max(280, $("#depthchart").clientWidth || 400), H = 260, L = 46, R = 8, T = 10, B = 24, span = radar.mark * 0.15;
   const lo = radar.mark - span, hi = radar.mark + span, x = p => L + (p - lo) / (hi - lo) * (W - L - R);
   const bids = radar.bids.filter(b => b[0] >= lo), asks = radar.asks.filter(a => a[0] <= hi);
@@ -543,6 +546,7 @@ function filterRange(h) {
 }
 $("#oirange").onchange = () => drawOI(filterRange(window.oiHistory || []));
 function drawOI(h) {
+  if (!$("#oichart").clientWidth) return;
   if (h.length < 2) { $("#oichart").innerHTML = ""; return; }
   const W = Math.max(320, $("#oichart").clientWidth || 1000), H = 240, L = 56, R = 12, T = 12, B = 26;
   const ys = h.map(p => p.oi_usd), lo = Math.min(...ys) * 0.98, hi = Math.max(...ys) * 1.02 || 1;
@@ -870,6 +874,7 @@ function renderLive(d) {
   liveLast = { mark: m.mark, last: m.last, perp: m.perp_id };
 }
 
+{ const h = location.hash.slice(1); if (h && h !== "live" && document.getElementById("tab-" + h)) showTab(h); }
 (async () => { await loadStatus(); try { await initMarkets(); await loadRadar(); } catch (e) { $("#headline").innerHTML = `<span class="err">${esc(e.message)}</span>`; } setInterval(loadStatus, 5000); setInterval(() => { if (!$("#tab-radar").hidden) loadRadar(); }, 30000); })();
 </script>
 </body>

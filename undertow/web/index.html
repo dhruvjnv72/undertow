@@ -125,7 +125,8 @@
   .lad { display: none; }
   .lad .lh, .lad .lr { display: grid; grid-template-columns: 1.15fr 1fr 1fr; padding: 0 8px; }
   .lad .lh { color: var(--muted); font-size: 12px; padding-top: 4px; padding-bottom: 6px; }
-  .lad .lh span:not(:first-child), .lad .lr span:not(:first-child) { text-align: right; }
+  .lad .lh span:not(:first-child), .lad .lr span { text-align: right; }
+  .lad .lr span:nth-child(2) { text-align: left; }  /* the bar is the first child, so the price is the 2nd */
   .lad .lr { position: relative; font-size: 12.5px; line-height: 21px; }
   .lad .lr span { position: relative; z-index: 1; }
   .lad .lr .bar { position: absolute; right: 0; top: 0; bottom: 0; opacity: .22; }

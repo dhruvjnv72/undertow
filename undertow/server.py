@@ -13,6 +13,7 @@ JSON API (all GET):
     /api/top                          largest accounts with positions
     /api/protocol                     exchange-wide totals and history since collection started
     /api/bot                          paper/live bot state and recent events
+    /api/candles?market=1&res=300    OHLCV candles for the Live chart (Perpl REST; res = 60, 300, 900, 3600, 14400)
     /api/live?market=1&levels=12     live prices, book, trades and signals (Perpl WebSocket, updated every block)
     /api/preview?perp=1&side=Long&usd=100&lev=5[&price=]   order preview (nothing is sent)
     /api/protect?perp=1&side=bid&min=25000&within=1         is a liquidation-aware rule triggered now
@@ -294,6 +295,31 @@ def api_live(q: dict) -> dict:
     return {"status": status, "server_ms": int(time.time() * 1000), "market": {k: v[k] for k in keep}, "signals": sig}
 
 
+_candle_cache: dict = {}
+
+
+def api_candles(q: dict) -> dict:
+    """OHLCV candles for the Live chart, straight from Perpl's public REST API (cached for 4 s)."""
+    mid, res = int(_num(q, "market", 1)), int(_num(q, "res", 300))
+    n = max(10, min(int(_num(q, "n", 150)), 500))
+    if res not in (60, 300, 900, 3600, 14400):
+        res = 300
+    key = (mid, res, n)
+    hit = _candle_cache.get(key)
+    if hit and time.time() - hit[0] < 4:
+        return hit[1]
+    with LIVE.lock:
+        meta = LIVE.markets.get(mid)
+        scale = 10 ** (meta["pdec"] if meta else 1)
+    now_ms = int(time.time() * 1000)
+    raw = live._rest(f"/market-data/{mid}/candles/{res}/{now_ms - res * 1000 * n}-{now_ms}")["d"]
+    out = {"market": mid, "res": res, "candles": [
+        {"t": c["t"], "o": c["o"] / scale, "h": c["h"] / scale, "l": c["l"] / scale, "c": c["c"] / scale,
+         "v": int(c["v"]) / 1e6, "n": c["n"]} for c in raw]}
+    _candle_cache[key] = (time.time(), out)
+    return out
+
+
 _verify_cache: dict = {"t": 0.0, "out": None}
 
 
@@ -346,7 +372,7 @@ class Handler(BaseHTTPRequestHandler):
                       "/api/radar": lambda: api_radar(q), "/api/cascade": lambda: api_cascade(q),
                       "/api/wallet": lambda: api_wallet(q), "/api/top": lambda: api_top(),
                       "/api/protocol": lambda: api_protocol(), "/api/bot": lambda: api_bot(),
-                      "/api/verify": lambda: api_verify(), "/api/live": lambda: api_live(q), "/api/live/markets": lambda: api_live_markets(), "/api/preview": lambda: api_preview(q), "/api/protect": lambda: api_protect(q)}
+                      "/api/verify": lambda: api_verify(), "/api/live": lambda: api_live(q), "/api/live/markets": lambda: api_live_markets(), "/api/candles": lambda: api_candles(q), "/api/preview": lambda: api_preview(q), "/api/protect": lambda: api_protect(q)}
             if u.path in routes:
                 return self._send(200, json.dumps(routes[u.path](), default=lambda o: asdict(o) if is_dataclass(o)
                                                   else str(o)).encode(), "application/json")

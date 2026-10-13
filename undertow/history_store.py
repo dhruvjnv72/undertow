@@ -65,6 +65,8 @@ def connect() -> sqlite3.Connection:
       leverage REAL, realized REAL, funding REAL);
     CREATE INDEX IF NOT EXISTS ix_account ON events(account_id, block, log_index);
     CREATE INDEX IF NOT EXISTS ix_block ON events(block);
+    CREATE INDEX IF NOT EXISTS ix_ts ON events(ts);
+    CREATE INDEX IF NOT EXISTS ix_kind_ts ON events(kind, ts);
     CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
     CREATE TABLE IF NOT EXISTS flows(
       id TEXT PRIMARY KEY, block INTEGER NOT NULL, ts INTEGER NOT NULL, kind TEXT NOT NULL, account_id INTEGER NOT NULL, amount REAL NOT NULL);

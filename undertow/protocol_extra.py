@@ -125,7 +125,21 @@ def volume() -> dict:
         return {"data": _vol["state"], "error": _vol["error"]}
 
 
+_act_cache: dict = {"t": 0.0, "out": None}
+
+
 def active_and_liquidations(snap: dict) -> dict:
+    """Cached for 60 s: counting distinct traders over a day of events is the slowest part of the Protocol screen."""
+    with _lock:
+        if _act_cache["out"] is not None and time.time() - _act_cache["t"] < 60:
+            return _act_cache["out"]
+    out = _active_and_liquidations(snap)
+    with _lock:
+        _act_cache.update(t=time.time(), out=out)
+    return out
+
+
+def _active_and_liquidations(snap: dict) -> dict:
     """Distinct traders with a position change in the last 24 h and recent liquidations, from the history database."""
     cov = history_store.coverage()
     if cov is None:

@@ -59,19 +59,28 @@ def _candles(mid: int, res: int, n: int) -> list[dict]:
     return live._rest(f"/market-data/{mid}/candles/{res}/{now - (n + 1) * res * 1000}-{now}")["d"]
 
 
+def _market_candles(mid: int, name: str, now: float):
+    """Daily and hourly candles for one market; None if this market could not be read (the others still count)."""
+    try:
+        return name, _candles(mid, 86400, 365), _candles(mid, 3600, 24)
+    except Exception:
+        return None
+
+
 def refresh_volume(feed) -> None:
-    """Fetch candles for every market (about 2 requests each) and rebuild the totals."""
+    """Fetch candles for every market in parallel (2 requests each) and rebuild the totals."""
+    from concurrent.futures import ThreadPoolExecutor
     try:
         by_day: dict[int, dict] = {}
         per_market: list[dict] = []
         now = time.time()
         with feed.lock:
             mk = [(m["id"], m["name"]) for m in feed.markets.values()]
-        for mid, name in mk:
-            daily = _candles(mid, 86400, 365)
-            time.sleep(0.15)
-            hourly = _candles(mid, 3600, 24)
-            time.sleep(0.15)
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            results = [r for r in pool.map(lambda m: _market_candles(m[0], m[1], now), mk) if r]
+        if not results:
+            raise RuntimeError("Perpl's candle API did not answer")
+        for name, daily, hourly in results:
             v24 = sum(float(c["v"]) / 1e6 for c in hourly if c["t"] / 1000 >= now - 86400)
             n24 = sum(int(c.get("n") or 0) for c in hourly if c["t"] / 1000 >= now - 86400)
             vtot = 0.0
@@ -88,7 +97,8 @@ def refresh_volume(feed) -> None:
         out = {"volume_24h": total24, "trades_24h": sum(m["trades_24h"] for m in per_market),
                "volume_7d": cut(7), "volume_30d": cut(30), "volume_all": sum(r["volumeUsd"] for r in days),
                "days_available": len(days), "first_day": days[0]["ts"] if days else None, "daily": days,
-               "markets": sorted(per_market, key=lambda m: -m["volume_24h"]), "computed_at": int(now)}
+               "markets": sorted(per_market, key=lambda m: -m["volume_24h"]), "computed_at": int(now),
+               "markets_read": len(results), "markets_total": len(mk)}
         with _lock:
             _vol.update(state=out, error=None, at=now)
     except Exception as e:  # keep the last good numbers, report the problem
@@ -97,27 +107,39 @@ def refresh_volume(feed) -> None:
 
 
 def start(feed) -> None:
-    """Background refresh of the volume totals and the TVL samples (one daemon thread)."""
+    """Background work, each piece in its own thread so none of them waits for another:
+    volume totals, TVL samples and the exchange comparison, and the deposit/withdrawal backfill."""
     global _started
     if _started:
         return
     _started = True
 
-    def loop():
-        last_vol = 0.0
+    def numbers_loop():
+        last_vol = last_tvl = 0.0
         while True:
             try:
-                if time.time() - last_vol > VOLUME_REFRESH_S and feed.markets:
+                if feed.markets and (_vol["state"] is None or time.time() - last_vol > VOLUME_REFRESH_S):
                     refresh_volume(feed)
                     last_vol = time.time()
-                _sample_tvl()
-                if time.time() - _cmp['at'] > 600:
+                if time.time() - last_tvl > 120:
+                    _sample_tvl()
+                    last_tvl = time.time()
+                if time.time() - _cmp["at"] > 600:
                     refresh_compare()
             except Exception:
                 pass
-            time.sleep(120)
+            time.sleep(4 if _vol["state"] is None else 20)  # check often until the first numbers exist
 
-    threading.Thread(target=loop, daemon=True, name="protocol-extra").start()
+    def flows_loop():
+        while True:
+            try:
+                history_store.flows_catch_up()
+            except Exception:
+                pass
+            time.sleep(20)
+
+    threading.Thread(target=numbers_loop, daemon=True, name="protocol-extra").start()
+    threading.Thread(target=flows_loop, daemon=True, name="flows").start()
 
 
 def volume() -> dict:

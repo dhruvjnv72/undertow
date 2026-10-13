@@ -328,7 +328,6 @@ class Follower(threading.Thread):
                 self.state["running"] = True
                 r = catch_up(self.days, perp_ids=self.perp_ids_fn() if self.perp_ids_fn else None)
                 self.state.update(last_new=r["new_events"], error="", backfilling=False)
-                flows_catch_up()
             except Exception as e:
                 self.state["error"] = f"{type(e).__name__}: {e}"
                 time.sleep(30)

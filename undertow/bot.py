@@ -77,6 +77,7 @@ class Decision:
     quotes: list[Quote] = field(default_factory=list)
     fair: float = 0.0
     half_spread_bps: float = 0.0
+    context: dict = field(default_factory=dict)  # why: inputs, the checks it ran, nearby zones and how the quotes were priced
 
 
 @dataclass
@@ -111,42 +112,70 @@ def decide(snap: dict, st: State, p: Params, data_age_s: float, kill: bool = Fal
     mark = perp["mark"]
     equity = st.equity(mark)
     pos_usd = st.position * mark
+    ctx: dict = {"mark": mark, "equity": equity, "position_usd": pos_usd, "data_age_s": data_age_s, "checks": [], "zones": []}
 
+    def chk(name: str, ok: bool, detail: str) -> None:
+        ctx["checks"].append({"name": name, "ok": ok, "detail": detail})
+
+    def out(action: str, reason: str, quotes=None, fair: float = 0.0, spread: float = 0.0) -> Decision:
+        return Decision(action, reason, quotes or [], fair, spread, ctx)
+
+    chk("Kill-switch file", not kill, "KILL file present" if kill else "no KILL file")
     if kill:
-        return Decision("halt", "kill switch file present")
+        return out("halt", "kill switch file present")
+    chk("Not halted earlier", not st.halted, st.halt_reason or "running")
     if st.halted:
-        return Decision("halt", st.halt_reason or "halted earlier")
-    if equity - st.day_start_equity <= -p.max_daily_loss_usd:
-        return Decision("halt", f"daily loss limit: {equity - st.day_start_equity:+.2f} USD")
+        return out("halt", st.halt_reason or "halted earlier")
+    day_pnl = equity - st.day_start_equity
+    chk("Daily loss limit", day_pnl > -p.max_daily_loss_usd, f"today {day_pnl:+.2f} USD, halts at -{p.max_daily_loss_usd:.2f}")
+    if day_pnl <= -p.max_daily_loss_usd:
+        return out("halt", f"daily loss limit: {day_pnl:+.2f} USD")
+    chk("Equity above zero", equity > 0, f"equity {equity:.2f} USD")
     if equity <= 0:
-        return Decision("halt", "equity exhausted")
-    if abs(pos_usd) / equity > p.max_leverage:
-        return Decision("halt", f"leverage {abs(pos_usd) / equity:.2f}x above limit {p.max_leverage}x")
+        return out("halt", "equity exhausted")
+    lev_now = abs(pos_usd) / equity
+    chk("Leverage limit", lev_now <= p.max_leverage, f"{lev_now:.2f}x now, limit {p.max_leverage}x")
+    if lev_now > p.max_leverage:
+        return out("halt", f"leverage {lev_now:.2f}x above limit {p.max_leverage}x")
     if st.position:
         side = "Long" if st.position > 0 else "Short"
         lev = max(abs(pos_usd) / equity, 1.0)
         liq = risk.liq_price_at_leverage(st.entry, abs(st.position), side, lev, perp["maintenance_margin_x"])
         dist = abs(liq / mark - 1) * 100
+        chk("Own liquidation far enough", dist >= p.min_liq_distance_pct, f"{dist:.1f}% away, minimum {p.min_liq_distance_pct}%")
         if dist < p.min_liq_distance_pct:
-            return Decision("halt", f"liquidation only {dist:.1f}% away (minimum {p.min_liq_distance_pct}%)")
+            return out("halt", f"liquidation only {dist:.1f}% away (minimum {p.min_liq_distance_pct}%)")
+    else:
+        chk("Own liquidation far enough", True, "no position, so nothing to liquidate")
+    chk("Data is fresh", data_age_s <= p.data_stale_s, f"{data_age_s:.0f}s old, limit {p.data_stale_s:.0f}s")
     if data_age_s > p.data_stale_s:
-        return Decision("pull", f"data is {data_age_s:.0f}s old (limit {p.data_stale_s:.0f}s)")
+        return out("pull", f"data is {data_age_s:.0f}s old (limit {p.data_stale_s:.0f}s)")
 
     spread = p.half_spread_bps
     note = "normal"
     def edge_dist(z: risk.Zone) -> float:  # distance from the mark to the zone's nearest edge, in percent
         return min(abs(z.low / mark - 1), abs(z.high / mark - 1)) * 100
 
-    near = [z for z in risk.zones(snap, p.perp_id) if edge_dist(z) <= p.zone_pullback_pct and z.notional >= p.zone_min_usd]
+    all_zones = risk.zones(snap, p.perp_id)
+    for z in sorted((z for z in all_zones if edge_dist(z) <= 5.0), key=lambda x: -x.notional)[:4]:
+        d5 = risk.depth_notional(snap, p.perp_id, bids=(z.side == "Long"), within_pct=5.0)
+        ctx["zones"].append({"side": z.side, "low": z.low, "high": z.high, "notional": z.notional, "edge_dist_pct": edge_dist(z),
+                             "depth_5pct": d5, "ratio": (z.notional / d5) if d5 else None,
+                             "near": edge_dist(z) <= p.zone_pullback_pct and z.notional >= p.zone_min_usd})
+    near = [z for z in all_zones if edge_dist(z) <= p.zone_pullback_pct and z.notional >= p.zone_min_usd]
     if near:
         z = max(near, key=lambda x: x.notional)
         depth = risk.depth_notional(snap, p.perp_id, bids=(z.side == "Long"), within_pct=5.0)
         ratio = z.notional / depth if depth else float("inf")
         if ratio >= p.pull_ratio:
-            return Decision("pull", f"{z.side.lower()} zone {risk.fmt_usd(z.notional)} within "
-                                    f"{edge_dist(z):.1f}% away is {ratio:.1f}x the book depth")
+            chk("No dangerous liquidation zone nearby", False, f"{z.side.lower()} zone {risk.fmt_usd(z.notional)} is {edge_dist(z):.1f}% away and {ratio:.1f}x the book depth (pull at {p.pull_ratio}x)")
+            return out("pull", f"{z.side.lower()} zone {risk.fmt_usd(z.notional)} within "
+                               f"{edge_dist(z):.1f}% away is {ratio:.1f}x the book depth")
+        chk("No dangerous liquidation zone nearby", True, f"{z.side.lower()} zone {risk.fmt_usd(z.notional)} is {edge_dist(z):.1f}% away but only {ratio:.1f}x the book (pull at {p.pull_ratio}x): widen instead")
         spread *= p.widen_factor
         note = f"widened x{p.widen_factor}: {z.side.lower()} zone {risk.fmt_usd(z.notional)} near"
+    else:
+        chk("No dangerous liquidation zone nearby", True, f"no zone of {risk.fmt_usd(p.zone_min_usd)} or more within {p.zone_pullback_pct}% of the price")
 
     fair = mark
     inv_ratio = max(-1.0, min(1.0, pos_usd / p.max_position_usd)) if p.max_position_usd else 0.0
@@ -154,8 +183,10 @@ def decide(snap: dict, st: State, p: Params, data_age_s: float, kill: bool = Fal
     bid_px = _round_to(fair * (1 - (spread - shift) / 1e4), p.tick, down=True)
     ask_px = _round_to(fair * (1 + (spread + shift) / 1e4), p.tick, down=False)
     size = _round_to(p.size_usd / fair, p.lot, down=True)
+    ctx["pricing"] = {"fair": fair, "base_spread_bps": p.half_spread_bps, "spread_bps": spread, "inventory_ratio": inv_ratio, "skew_shift_bps": shift,
+                      "bid": bid_px, "ask": ask_px, "size": size, "size_usd": p.size_usd}
     if size < p.lot:
-        return Decision("pull", "order size rounds to zero")
+        return out("pull", "order size rounds to zero")
 
     quotes: list[Quote] = []
     can_add_long = pos_usd + size * fair <= p.max_position_usd
@@ -171,8 +202,8 @@ def decide(snap: dict, st: State, p: Params, data_age_s: float, kill: bool = Fal
     elif can_add_short:
         quotes.append(Quote("ask", "open-short", ask_px, size))
     if not quotes:
-        return Decision("pull", "position limit reached on both sides", fair=fair)
-    return Decision("quote", note, quotes, fair, spread)
+        return out("pull", "position limit reached on both sides", fair=fair)
+    return out("quote", note, quotes, fair, spread)
 
 
 # ---------------------------------------------------------------- paper execution
@@ -304,7 +335,7 @@ def run(p: Params, mode: str, cycles: int | None, interval: float, testnet: bool
                 st.resting = [{**asdict(q)} for q in d.quotes]
             st.last_action, st.last_reason = d.action, d.reason
             if d.action != prev_action:
-                log({"event": "decision", "action": d.action, "reason": d.reason})
+                log({"event": "decision", "action": d.action, "reason": d.reason, "why": d.context})
                 if d.action == "pull":
                     alert(f"quotes pulled: {d.reason}")
                 prev_action = d.action

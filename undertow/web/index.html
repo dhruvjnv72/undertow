@@ -456,6 +456,10 @@
 
 <section id="tab-bot" hidden>
   <div class="card" id="botcard">loading…</div>
+  <div class="grid2">
+    <div class="card" id="botwhy"></div>
+    <div class="card" id="botabout"></div>
+  </div>
   <div class="card"><h2>Recent events</h2><div class="scroll"><table id="botevents"></table></div></div>
 </section>
 
@@ -824,20 +828,60 @@ $("#runverify").onclick = async () => {
 };
 
 /* ---------- bot ---------- */
+function botAboutHtml(P) {
+  const rows = [["Spread each side", `${P.half_spread_bps} bps from the mark`], ["Order size", `$${P.size_usd} per side`], ["Largest position", `$${P.max_position_usd}`],
+    ["Quote shift against inventory", `up to ${P.inventory_skew_bps} bps`], ["Widen the spread when a zone is near", `x${P.widen_factor} (zone of $${(P.zone_min_usd / 1000).toFixed(0)}k or more within ${P.zone_pullback_pct}%)`],
+    ["Pull quotes when zone ÷ book depth reaches", `${P.pull_ratio}x`], ["Halt at daily loss", `$${P.max_daily_loss_usd}`], ["Halt above leverage", `${P.max_leverage}x`],
+    ["Halt if own liquidation is closer than", `${P.min_liq_distance_pct}%`], ["Pull quotes when data is older than", `${P.data_stale_s} s`], ["Starting paper equity", `$${P.equity_start_usd}`]];
+  return `<h2>How the bot works</h2>
+    <div class="hl">A market maker on BTC: it keeps one buy order just below the mark price and one sell order just above it, and earns the gap minus a tiny maker fee.</div>
+    <div class="hl"><b>What is special:</b> it reads Undertow's liquidation zones. If a big zone is close it widens its spread; if that zone is large compared with the order book it pulls its quotes altogether, because a cascade would run over a market maker.</div>
+    <div class="hl"><b>Safety:</b> every order is post-only and expires on its own; hard limits halt it (daily loss, leverage, distance to its own liquidation, a KILL file, stale data). In paper mode nothing is sent anywhere. Live mode exists in the code but is locked behind a private key and two environment switches, and <b>the bot has never traded live</b>.</div>
+    <div class="scroll"><table style="margin-top:6px"><tr><th class="l">Setting</th><th>Value</th></tr>${rows.map(r => `<tr><td class="l">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table></div>`;
+}
+function botWhyHtml(b) {
+  const d = b.decision || {}, c = d.context || {}, act = d.action;
+  const plain = act === "quote" ? "The bot is quoting. Every safety check passed and no liquidation zone is dangerous, so it keeps a buy below and a sell above the mark." + (d.reason && d.reason !== "normal" ? " Special case: " + d.reason + "." : "")
+    : act === "pull" ? `The bot pulled its quotes: ${d.reason}. It quotes again as soon as that clears.` : act === "halt" ? `The bot halted: ${d.reason}. It will not quote until it is restarted.` : "No decision yet.";
+  const cls = act === "quote" ? "b-low" : act === "pull" ? "b-medium" : "b-high";
+  let h = `<h2>Why it is doing this right now</h2><div class="hl"><span class="badge ${cls}">${esc(act || "–")}</span>${esc(plain)}</div>`;
+  if (c.checks) {
+    h += `<div class="k" style="margin:10px 0 4px;font-weight:700">THE CHECKS IT RAN, IN ORDER</div>` + c.checks.map(x =>
+      `<div style="padding:3px 0"><b class="${x.ok ? "up" : "dn"}">${x.ok ? "✓" : "✗"}</b> <b>${esc(x.name)}</b> <span class="muted small">${esc(x.detail)}</span></div>`).join("");
+  }
+  if (c.zones && c.zones.length) {
+    h += `<div class="k" style="margin:12px 0 4px;font-weight:700">LIQUIDATION ZONES AROUND THE PRICE (within 5%)</div><div class="scroll"><table><tr><th class="l">Zone</th><th>Price range</th><th>Away</th><th>Value</th><th>Book depth</th><th>Zone ÷ book</th><th class="l">Bot's reaction</th></tr>` +
+      c.zones.map(z => `<tr><td class="l ${z.side === "Long" ? "dn" : "up"}">${z.side}s</td><td>${price(z.low)}–${price(z.high)}</td><td>${z.edge_dist_pct.toFixed(2)}%</td><td>${money(z.notional)}</td><td>${money(z.depth_5pct)}</td><td>${z.ratio == null ? "–" : z.ratio.toFixed(1) + "x"}</td>` +
+        `<td class="l">${!z.near ? '<span class="muted">ignored (too small or too far)</span>' : z.ratio != null && z.ratio >= b.params.pull_ratio ? '<b class="dn">pull the quotes</b>' : '<b style="color:var(--warn)">widen the spread</b>'}</td></tr>`).join("") + `</table></div>`;
+  } else if (c.checks) { h += `<div class="muted small" style="margin-top:8px">No liquidation zone within 5% of the price.</div>`; }
+  const q = c.pricing;
+  if (q) {
+    h += `<div class="k" style="margin:12px 0 4px;font-weight:700">HOW THE QUOTES WERE PRICED</div><div class="hl">Fair price (the mark) <b>${price(q.fair)}</b>. Spread <b>${q.spread_bps.toFixed(1)} bps</b> each side` +
+      `${q.spread_bps !== q.base_spread_bps ? ` (base ${q.base_spread_bps} bps, widened because of a nearby zone)` : " (the normal spread)"}. Inventory shift <b>${q.skew_shift_bps >= 0 ? "+" : ""}${q.skew_shift_bps.toFixed(1)} bps</b> ` +
+      `(${Math.abs(q.inventory_ratio) < 0.01 ? "no position, so no lean" : q.inventory_ratio > 0 ? "holding a long, so both quotes shift down to sell more easily" : "holding a short, so both quotes shift up to buy more easily"}). ` +
+      `Result: buy at <b>${price(q.bid)}</b>, sell at <b>${price(q.ask)}</b>, ${q.size} BTC (about $${q.size_usd}) each.</div>`;
+  }
+  return h;
+}
 async function loadBot() {
   try {
     const b = await api("/api/bot");
-    if (b.running === false) { $("#botcard").innerHTML = `<div class="muted">${esc(b.message)}</div>`; $("#botevents").innerHTML = ""; return; }
+    if (b.running === false) {
+      $("#botcard").innerHTML = `<div class="muted">${esc(b.message)}</div>`; $("#botevents").innerHTML = "";
+      $("#botwhy").innerHTML = ""; $("#botabout").innerHTML = botAboutHtml(b.params); return;
+    }
     const st = b.state, d = b.decision || {}, cls = d.action === "quote" ? "b-low" : d.action === "pull" ? "b-medium" : "b-high";
     const chip = (l, v) => `<div style="min-width:150px"><div class="muted small">${l}</div><div style="font-size:18px;font-weight:600">${v}</div></div>`;
     $("#botcard").innerHTML = `<div class="row" style="margin-bottom:10px"><span class="badge b-medium" style="text-transform:uppercase">${esc(b.mode)} mode</span>
-      <span class="badge ${cls}">${esc(d.action || "–")}</span><span class="muted small">${esc(d.reason || "")} · updated ${b.age_seconds}s ago</span></div>
+      <span class="badge ${cls}">${esc(d.action || "–")}</span><span class="muted small">${esc(d.reason || "")} · updated ${b.age_seconds}s ago${b.auto ? " · this server runs the paper bot by itself and restarts it from $" + b.params.equity_start_usd + " when the server restarts" : ""}</span></div>
       <div class="row">${chip("Equity", "$" + b.equity.toFixed(2))}${chip("PnL", (b.pnl >= 0 ? "+" : "−") + "$" + Math.abs(b.pnl).toFixed(4))}
       ${chip("Position", st.position.toFixed(5))}${chip("Fills", st.fills)}${chip("Fees paid", "$" + st.fees.toFixed(4))}${chip("Mark", price(b.mark))}</div>
       <h2 style="margin-top:16px">Current quotes</h2>` +
       (st.resting.length ? `<table><tr><th class="l">Side</th><th class="l">Type</th><th>Price</th><th>Size</th><th>Value</th></tr>` + st.resting.map(q => `<tr><td class="l">${q.side}</td><td class="l">${q.order_type}</td><td>${price(q.price)}</td><td>${q.size}</td><td>$${(q.price * q.size).toFixed(2)}</td></tr>`).join("") + "</table>" : `<div class="muted">No quotes resting.</div>`) +
       (b.mode === "paper" ? `<div class="warn" style="margin-top:12px">Paper mode: no real orders are sent. Fills are simulated when the mark price crosses a quote, checked once per data refresh, so results are rough and not evidence of live profit.</div>` : "");
-    $("#botevents").innerHTML = `<tr><th class="l">Time (UTC)</th><th class="l">Event</th><th class="l">Detail</th></tr>` + b.events.map(e => `<tr><td class="l">${esc(e.t)}</td><td class="l">${esc(e.event)}</td><td class="l" style="white-space:normal">${esc(e.event === "fill" ? `${e.side} ${e.size} @ ${e.price} (mark ${e.filled_at_mark})` : e.event === "decision" ? `${e.action}: ${e.reason}` : e.error || JSON.stringify(e.result || ""))}</td></tr>`).join("");
+    $("#botwhy").innerHTML = botWhyHtml(b);
+    $("#botabout").innerHTML = botAboutHtml(b.params);
+    $("#botevents").innerHTML = `<tr><th class="l">Time (UTC)</th><th class="l">Event</th><th class="l">Detail</th></tr>` + (b.events.length ? b.events.map(e => `<tr><td class="l">${esc(e.t)}</td><td class="l">${esc(e.event)}</td><td class="l" style="white-space:normal">${esc(e.event === "fill" ? `${e.side} ${e.size} @ ${e.price} (mark ${e.filled_at_mark})` : e.event === "decision" ? `${e.action}: ${e.reason}` : e.error || JSON.stringify(e.result || ""))}</td></tr>`).join("") : `<tr><td class="l muted" colspan="3">No fills or decision changes yet. The bot quotes every 45 seconds; a fill happens when the mark price crosses one of its quotes.</td></tr>`);
   } catch (e) { $("#botcard").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 }
 

@@ -43,6 +43,7 @@ BOT_STATE = config.BOT_DIR / "state.json"
 BOT_LOG = config.BOT_DIR / "log.jsonl"
 
 IN_PATH_MIN_USD = 5_000
+PAPER_BOT = {"auto": False}  # True when this server runs the paper bot itself (see main)
 _cache: dict = {"mtime": 0.0, "snap": None, "formula": None, "oi": None}
 _lock = threading.Lock()
 
@@ -315,18 +316,36 @@ def _api_protocol_uncached() -> dict:
             "not_available": ["protocol revenue (how fees are split with the exchange is not data we can read)"]}
 
 
+def _tail_lines(path, n: int) -> list[str]:
+    """Last n lines of a text file without reading all of it (the bot log keeps growing)."""
+    with open(path, "rb") as f:
+        f.seek(0, 2)
+        size = f.tell()
+        f.seek(max(0, size - 400_000))
+        data = f.read().decode("utf-8", "replace")
+    return data.splitlines()[-n:]
+
+
 def api_bot() -> dict:
+    from . import bot as botmod
+    from dataclasses import asdict as _asdict
+    defaults = _asdict(botmod.Params())
     if not BOT_STATE.exists():
-        return {"running": False, "message": "No bot run yet. Start one: python -m undertow.bot --paper"}
+        return {"running": False, "params": defaults, "auto": PAPER_BOT["auto"],
+                "message": "The paper bot has not produced a result yet." + (" It starts by itself about a minute after the server starts and then updates every 45 seconds." if PAPER_BOT["auto"] else " Start one: python -m undertow.bot --paper")}
     st = json.loads(BOT_STATE.read_text(encoding="utf-8"))
     events = []
     if BOT_LOG.exists():
-        for line in BOT_LOG.read_text(encoding="utf-8").splitlines()[-400:]:
-            e = json.loads(line)
+        for line in _tail_lines(BOT_LOG, 600):
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue  # a half-written first line of the tail
             if e.get("event") in ("fill", "decision", "error", "live_order"):
                 events.append(e)
     st["events"] = events[-15:][::-1]
     st["age_seconds"] = round(time.time() - BOT_STATE.stat().st_mtime)
+    st["auto"] = PAPER_BOT["auto"]
     return st
 
 
@@ -503,6 +522,23 @@ def main() -> None:
                     pass
                 time.sleep(9)
         threading.Thread(target=_warm_protocol, daemon=True, name="protocol-warm").start()
+
+    # The paper bot (simulated, never sends an order) runs inside the server so the Bot tab is always alive.
+    # Live mode is not reachable from here: this only ever calls run(..., "paper", ...). Turn it off with UNDERTOW_PAPER_BOT=off.
+    if os.environ.get("UNDERTOW_PAPER_BOT", "on").strip().lower() not in ("off", "no", "0", "false"):
+        from . import bot as botmod
+
+        def _paper_bot():
+            time.sleep(25)  # let the first snapshot arrive
+            botmod.BOT_DIR.mkdir(parents=True, exist_ok=True)
+            while True:
+                try:
+                    botmod.run(botmod.Params(), "paper", None, 45)  # returns only if a hard limit halted it
+                except Exception:
+                    traceback.print_exc()
+                time.sleep(300)  # after a halt, look again in five minutes (a halt clears on restart of the bot)
+        PAPER_BOT["auto"] = True
+        threading.Thread(target=_paper_bot, daemon=True, name="paper-bot").start()
     else:
         print(f"Live feed disabled: {LIVE.last_error}", flush=True)
     srv = ThreadingHTTPServer((a.host, a.port), Handler)

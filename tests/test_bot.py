@@ -171,3 +171,37 @@ class LiveLockTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DecisionContextTests(unittest.TestCase):
+    """The decision explains itself: the checks it ran and how the quotes were priced."""
+
+    def _snap(self):
+        import json
+        from pathlib import Path
+        return json.loads((Path(__file__).parent / "fixtures" / "snapshot_small.json").read_text()) if (Path(__file__).parent / "fixtures" / "snapshot_small.json").exists() else None
+
+    def test_halt_by_kill_file_records_the_check(self):
+        from undertow import bot
+        snap = {"perps": {"1": {"mark": 100.0, "maintenance_margin_x": 20, "orders": [], "name": "BTC"}}, "positions": []}
+        d = bot.decide(snap, bot.State(), bot.Params(perp_id=1), 5.0, kill=True)
+        self.assertEqual(d.action, "halt")
+        self.assertEqual(d.context["checks"][0]["name"], "Kill-switch file")
+        self.assertFalse(d.context["checks"][0]["ok"])
+
+    def test_quote_records_pricing_and_all_checks_pass(self):
+        from undertow import bot
+        snap = {"perps": {"1": {"mark": 100.0, "maintenance_margin_x": 20, "orders": [], "name": "BTC"}}, "positions": []}
+        d = bot.decide(snap, bot.State(), bot.Params(perp_id=1, tick=0.01, lot=0.001), 5.0)
+        self.assertEqual(d.action, "quote")
+        self.assertTrue(all(c["ok"] for c in d.context["checks"]))
+        self.assertAlmostEqual(d.context["pricing"]["spread_bps"], bot.Params().half_spread_bps)
+        self.assertLess(d.context["pricing"]["bid"], 100.0)
+        self.assertGreater(d.context["pricing"]["ask"], 100.0)
+
+    def test_stale_data_pulls_and_says_why(self):
+        from undertow import bot
+        snap = {"perps": {"1": {"mark": 100.0, "maintenance_margin_x": 20, "orders": [], "name": "BTC"}}, "positions": []}
+        d = bot.decide(snap, bot.State(), bot.Params(perp_id=1), 999.0)
+        self.assertEqual(d.action, "pull")
+        self.assertFalse([c for c in d.context["checks"] if c["name"] == "Data is fresh"][0]["ok"])

@@ -47,6 +47,10 @@ TOPIC = {n: "0x" + keccak(text=f"{n}({','.join(i['type'] for i in _events[n]['in
 BY_TOPIC = {t: n for n, t in TOPIC.items()}
 TYPES = {n: [i["type"] for i in _events[n]["inputs"]] for n in EVENTS}
 FIELDS = {n: [i["name"] for i in _events[n]["inputs"]] for n in EVENTS}
+# deposits and withdrawals (kept in their own table so wallet history logic never sees them)
+FLOW_EVENTS = {"CollateralDeposit": "deposit", "CollateralWithdrawal": "withdrawal"}
+FLOW_TOPIC = {n: "0x" + keccak(text=f"{n}({','.join(i['type'] for i in _events[n]['inputs'])})").hex() for n in FLOW_EVENTS}
+FLOW_BY_TOPIC = {t: n for n, t in FLOW_TOPIC.items()}
 _FIND_GETLOGS_SPAN = {"span": 1000}  # shrinks to 100 for endpoints that refuse more
 
 
@@ -62,6 +66,9 @@ def connect() -> sqlite3.Connection:
     CREATE INDEX IF NOT EXISTS ix_account ON events(account_id, block, log_index);
     CREATE INDEX IF NOT EXISTS ix_block ON events(block);
     CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
+    CREATE TABLE IF NOT EXISTS flows(
+      id TEXT PRIMARY KEY, block INTEGER NOT NULL, ts INTEGER NOT NULL, kind TEXT NOT NULL, account_id INTEGER NOT NULL, amount REAL NOT NULL);
+    CREATE INDEX IF NOT EXISTS ix_flows_ts ON flows(ts);
     """)
     return con
 
@@ -125,22 +132,22 @@ def perp_decimals(perp_ids: list[int]) -> dict[int, tuple[int, int]]:
     return out
 
 
-def get_logs(from_block: int, to_block: int) -> list[dict]:
-    """Position event logs in [from_block, to_block], splitting the range if the RPC says it is too large."""
+def get_logs(from_block: int, to_block: int, topics: list[str] | None = None) -> list[dict]:
+    """Event logs in [from_block, to_block] (position events unless `topics` is given), splitting the range if the RPC says it is too large."""
     span = _FIND_GETLOGS_SPAN["span"]
     if to_block - from_block + 1 > span:
         out, b = [], from_block
         while b <= to_block:
-            out += get_logs(b, min(b + span - 1, to_block))
+            out += get_logs(b, min(b + span - 1, to_block), topics)
             b += span
         return out
     try:
         return _rpc("eth_getLogs", [{"fromBlock": hex(from_block), "toBlock": hex(to_block), "address": config.EXCHANGE,
-                                       "topics": [list(TOPIC.values())]}])
+                                       "topics": [topics or list(TOPIC.values())]}])
     except RuntimeError as e:
         if "range" in str(e).lower() and span > 100:
             _FIND_GETLOGS_SPAN["span"] = 100
-            return get_logs(from_block, to_block)
+            return get_logs(from_block, to_block, topics)
         raise
 
 
@@ -206,6 +213,38 @@ def load_range(con: sqlite3.Connection, from_block: int, to_block: int, dec: dic
             progress(e, to_block, total)
         b = e + 1
     return total
+
+
+def decode_flow(log: dict) -> dict | None:
+    name = FLOW_BY_TOPIC.get(log["topics"][0])
+    if not name:
+        return None
+    acct, amount, _bal = abi_decode(["uint256", "uint256", "uint256"], bytes.fromhex(log["data"][2:]))
+    blk, li = int(log["blockNumber"], 16), int(log["logIndex"], 16)
+    return {"id": f"{blk}-{li}", "block": blk, "ts": int(log["blockTimestamp"], 16), "kind": FLOW_EVENTS[name], "account_id": int(acct), "amount": amount / CNS}
+
+
+def flows_catch_up(safety_blocks: int = 3, chunk: int = 20_000) -> int:
+    """Load deposits and withdrawals for the same block range as the position events, resuming where it stopped."""
+    con = connect()
+    try:
+        first, last = _meta(con, "first_block"), _meta(con, "last_block")
+        if first is None:
+            return 0
+        done = _meta(con, "flows_last_block")
+        b = (done + 1) if done is not None else first
+        end, n = last, 0
+        while b <= end:
+            e = min(b + chunk - 1, end)
+            rows = [r for r in (decode_flow(l) for l in get_logs(b, e, list(FLOW_TOPIC.values()))) if r]
+            con.executemany("INSERT OR IGNORE INTO flows(id,block,ts,kind,account_id,amount) VALUES(:id,:block,:ts,:kind,:account_id,:amount)", rows)
+            n += len(rows)
+            _set_meta(con, "flows_last_block", e)
+            con.commit()
+            b = e + 1
+        return n
+    finally:
+        con.close()
 
 
 def block_timestamp(block: int) -> int:
@@ -287,6 +326,7 @@ class Follower(threading.Thread):
                 self.state["running"] = True
                 r = catch_up(self.days, perp_ids=self.perp_ids_fn() if self.perp_ids_fn else None)
                 self.state.update(last_new=r["new_events"], error="", backfilling=False)
+                flows_catch_up()
             except Exception as e:
                 self.state["error"] = f"{type(e).__name__}: {e}"
                 time.sleep(30)

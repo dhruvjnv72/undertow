@@ -128,3 +128,71 @@ def opened_at(events: list[dict]) -> dict[str, dict]:
         elif kind in ("closed", "liquidated", "deleveraged", "decreased") and (e.get("sizeAfter") or 0) <= 1e-12:
             cur.pop(m, None)
     return cur
+
+
+def insights(events: list[dict], min_trips: int = 5) -> dict:
+    """Plain-language observations about trading habits. Rule-based statistics on the loaded window, not AI."""
+    ts = sorted(trips(events), key=lambda t: t.closed_ts)
+    if len(ts) < min_trips:
+        return {"items": [], "note": f"Not enough closed positions yet ({len(ts)}; at least {min_trips} are needed for habits to mean anything)."}
+    items: list[dict] = []
+
+    def add(title: str, text: str, tone: str = "info"):
+        items.append({"title": title, "text": text, "tone": tone})
+
+    dur = lambda s: f"{s / 3600:.1f} h" if s >= 5400 else f"{s / 60:.0f} min"  # noqa: E731
+    win_h = [t.hold_seconds for t in ts if t.realized_net > FLAT_USD and t.hold_seconds is not None]
+    loss_h = [t.hold_seconds for t in ts if t.realized_net < -FLAT_USD and t.hold_seconds is not None]
+    if len(win_h) >= 3 and len(loss_h) >= 3:
+        w, l = sum(win_h) / len(win_h), sum(loss_h) / len(loss_h)
+        r = l / w if w else None
+        if r and r >= 1.5:
+            add("Holds losers longer than winners", f"Losing trades are held {r:.1f}x longer than winning ones (average {dur(l)} against {dur(w)}). This is a common sign of waiting for a loser to come back.", "warn")
+        elif r and r <= 0.67:
+            add("Cuts losers fast, lets winners run", f"Winning trades are held {1 / r:.1f}x longer than losing ones (average {dur(w)} against {dur(l)}).", "good")
+        else:
+            add("Holds winners and losers for similar time", f"Average {dur(w)} for winners and {dur(l)} for losers.")
+    n_long = sum(1 for t in ts if t.side == "Long")
+    share = n_long / len(ts)
+    if share >= 0.8 or share <= 0.2:
+        add("Strong side bias", f"{share * 100:.0f}% of closed positions were {'longs' if share >= 0.5 else 'shorts'} ({len(ts)} positions).")
+    else:
+        add("Balanced between longs and shorts", f"{share * 100:.0f}% longs, {100 - share * 100:.0f}% shorts over {len(ts)} positions.")
+    lev = [e["leverage"] for e in events if e.get("kind") in ("opened", "increased") and e.get("leverage")]
+    if lev:
+        avg, mx = sum(lev) / len(lev), max(lev)
+        add("Leverage used", f"Average {avg:.1f}x when opening or adding, highest {mx:.1f}x.", "warn" if avg >= 10 else "info")
+    cnt: dict[str, int] = {}
+    for t in ts:
+        cnt[t.market] = cnt.get(t.market, 0) + 1
+    top = max(cnt.items(), key=lambda kv: kv[1])
+    if top[1] / len(ts) >= 0.6 and len(cnt) > 1:
+        add("Concentrated in one market", f"{top[1] / len(ts) * 100:.0f}% of positions were in {top[0]} (out of {len(cnt)} markets traded).")
+    opened_notional = {(e["perpName"], e["timestamp"]): (e.get("sizeAfter") or 0) * (e.get("price") or 0) for e in events if e.get("kind") == "opened"}
+    after_loss, after_win = [], []
+    for prev, nxt in zip(ts, ts[1:]):
+        n = opened_notional.get((nxt.market, nxt.opened_ts)) if nxt.opened_ts is not None else None
+        if n:
+            if prev.realized_net < -FLAT_USD:
+                after_loss.append(n)
+            elif prev.realized_net > FLAT_USD:
+                after_win.append(n)
+    if len(after_loss) >= 3 and len(after_win) >= 3:
+        a, b = sum(after_loss) / len(after_loss), sum(after_win) / len(after_win)
+        if b and a / b >= 1.5:
+            add("Sizes up after a loss", f"The next position after a loss is on average {a / b:.1f}x bigger than after a win (${a:,.0f} against ${b:,.0f}). This can be a sign of trying to win it back.", "warn")
+        elif a and b / a >= 1.5:
+            add("Sizes down after a loss", f"The next position after a loss is on average {b / a:.1f}x smaller than after a win.", "good")
+    hours: dict[int, int] = {}
+    for e in events:
+        if e.get("kind") == "opened":
+            h = int(e["timestamp"] // 3600 % 24)
+            hours[h] = hours.get(h, 0) + 1
+    if hours and sum(hours.values()) >= 8:
+        h, c = max(hours.items(), key=lambda kv: kv[1])
+        if c / sum(hours.values()) >= 0.25:
+            add("Favourite hour", f"{c / sum(hours.values()) * 100:.0f}% of entries happen around {h:02d}:00 UTC.")
+    liq = sum(1 for t in ts if t.ended_by == "liquidated")
+    if liq:
+        add("Has been liquidated", f"{liq} of {len(ts)} closed positions ended in liquidation.", "warn")
+    return {"items": items, "note": "Habits are rule-based statistics on the loaded history window (not AI, not advice). Fees are not included."}

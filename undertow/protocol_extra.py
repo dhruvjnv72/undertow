@@ -111,6 +111,8 @@ def start(feed) -> None:
                     refresh_volume(feed)
                     last_vol = time.time()
                 _sample_tvl()
+                if time.time() - _cmp['at'] > 600:
+                    refresh_compare()
             except Exception:
                 pass
             time.sleep(120)
@@ -143,3 +145,103 @@ def active_and_liquidations(snap: dict) -> dict:
              "size": (sb or 0) - (sa or 0), "usd": ((sb or 0) - (sa or 0)) * (pr or 0)} for ts, p, a, s, pr, sb, sa in rows]
     return {"available": True, "traders_window_hours": round((now - start24) / 3600, 1), "traders": traders,
             "window_start_ts": win, "liquidations_in_window": liq_n, "recent_liquidations": liqs}
+
+
+# ------------------------------------------------------------------ deposits and withdrawals (from the chain, via the history loader)
+def flows_summary() -> dict:
+    """Deposits and withdrawals for the loaded window, with an hourly series for a chart."""
+    if not history_store.DB_FILE.exists():
+        return {"available": False}
+    con = history_store.connect()
+    try:
+        last_block = history_store._meta(con, "flows_last_block")
+        first_block = history_store._meta(con, "first_block")
+        events_last = history_store._meta(con, "last_block") or 0
+        if last_block is None or first_block is None:
+            return {"available": False, "loading": True}
+        now = int(time.time())
+        first_ts = history_store._meta(con, "first_ts") or now
+        last_ts = history_store._meta(con, "last_ts") or now
+        rows = con.execute("SELECT ts, kind, amount FROM flows ORDER BY ts").fetchall()
+    finally:
+        con.close()
+    s24 = max(now - 86400, first_ts)
+    dep24 = sum(a for t, k, a in rows if k == "deposit" and t >= s24)
+    wd24 = sum(a for t, k, a in rows if k == "withdrawal" and t >= s24)
+    dep = sum(a for t, k, a in rows if k == "deposit")
+    wd = sum(a for t, k, a in rows if k == "withdrawal")
+    buckets: dict[int, dict] = {}
+    for t, k, a in rows:
+        b = buckets.setdefault(t // 3600 * 3600, {"ts": t // 3600 * 3600, "deposits": 0.0, "withdrawals": 0.0})
+        b["deposits" if k == "deposit" else "withdrawals"] += a
+    series = [dict(buckets[k], net=buckets[k]["deposits"] - buckets[k]["withdrawals"]) for k in sorted(buckets)]
+    return {"available": True, "window_start_ts": first_ts, "window_hours": round((last_ts - first_ts) / 3600, 1), "hours_24": round((now - s24) / 3600, 1),
+            "deposits_24h": dep24, "withdrawals_24h": wd24, "net_24h": dep24 - wd24, "deposits": dep, "withdrawals": wd, "net": dep - wd,
+            "count": len(rows), "series": series,
+            "complete": bool(last_block is not None and events_last - last_block < 60000), "loaded_pct": round(100 * (last_block - first_block) / max(1, events_last - first_block))}
+
+
+# ------------------------------------------------------------------ fee estimate
+def fee_estimate(vol: dict | None, snap: dict) -> dict | None:
+    """Fees traders pay, estimated as volume x (taker + maker rate) per market. Fee tiers, rebates and builder fees are ignored."""
+    if not vol or not vol.get("data"):
+        return None
+    v = vol["data"]
+    rate = {p["name"]: (p.get("taker_fee") or 0) + (p.get("maker_fee") or 0) for p in snap["perps"].values()}
+    est24 = sum(m["volume_24h"] * rate.get(m["name"], 0) for m in v["markets"])
+    blended = est24 / v["volume_24h"] if v["volume_24h"] else 0.0
+    return {"fees_24h": est24, "fees_7d": v["volume_7d"] * blended, "fees_30d": v["volume_30d"] * blended, "fees_all": v["volume_all"] * blended, "blended_rate": blended}
+
+
+# ------------------------------------------------------------------ comparison with other perpetual exchanges (public APIs; fails soft)
+_cmp: dict = {"data": None, "error": None, "at": 0.0}
+COMPARE_COINS = ("BTC", "ETH", "SOL")
+
+
+def _http_json(url: str, body: dict | None = None, timeout: int = 15):
+    import urllib.request
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data, {"Content-Type": "application/json", "User-Agent": "undertow"})
+    return json.loads(urllib.request.urlopen(req, timeout=timeout).read())
+
+
+def parse_hyperliquid(payload) -> dict:
+    meta, ctxs = payload[0]["universe"], payload[1]
+    out = {}
+    for m, c in zip(meta, ctxs):
+        if m["name"] in COMPARE_COINS:
+            out[m["name"]] = {"volume_24h": float(c["dayNtlVlm"]), "oi_usd": float(c["openInterest"]) * float(c["markPx"])}
+    return out
+
+
+def parse_dydx(payload) -> dict:
+    out = {}
+    for ticker, c in payload["markets"].items():
+        coin = ticker.split("-")[0]
+        if coin in COMPARE_COINS and ticker.endswith("-USD"):
+            out[coin] = {"volume_24h": float(c["volume24H"]), "oi_usd": float(c["openInterest"]) * float(c["oraclePrice"])}
+    return out
+
+
+def refresh_compare() -> None:
+    res, errs = {}, []
+    for name, fn in (("Hyperliquid", lambda: parse_hyperliquid(_http_json("https://api.hyperliquid.xyz/info", {"type": "metaAndAssetCtxs"}))),
+                     ("dYdX", lambda: parse_dydx(_http_json("https://indexer.dydx.trade/v4/perpetualMarkets")))):
+        try:
+            res[name] = fn()
+        except Exception as e:
+            errs.append(f"{name}: {type(e).__name__}")
+    with _lock:
+        _cmp.update(data=res or None, error=("; ".join(errs) or None), at=time.time())
+
+
+def compare(vol: dict | None, snap: dict) -> dict:
+    with _lock:
+        c = dict(_cmp)
+    perpl = {}
+    if vol and vol.get("data"):
+        oi = {p["name"]: p["open_interest_usd"] for p in snap["perps"].values()}
+        for m in vol["data"]["markets"]:
+            if m["name"] in COMPARE_COINS:
+                perpl[m["name"]] = {"volume_24h": m["volume_24h"], "oi_usd": oi.get(m["name"]) or None}
+    return {"perpl": perpl, "others": c["data"], "error": c["error"], "at": c["at"]}

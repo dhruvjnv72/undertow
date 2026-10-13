@@ -140,3 +140,30 @@ class DrawdownTests(unittest.TestCase):
     def test_no_losses_means_zero_drawdown(self):
         evs = [ev(1, "opened", 0, sizeAfter=1), ev(2, "closed", 50, sizeAfter=0, realizedPnlUsd=5.0)]
         self.assertEqual(wh.stats(evs)["max_drawdown_usd"], 0.0)
+
+
+class InsightTests(unittest.TestCase):
+    def _trade(self, i, pnl, hold, side="Long", price=100.0, size=1.0, lev=5.0):
+        t0 = 1000 * i
+        return [ev(10 * i + 1, "opened", t0, side=side, price=price, sizeAfter=size, leverage=lev),
+                ev(10 * i + 2, "closed", t0 + hold, side=side, sizeAfter=0, realizedPnlUsd=pnl)]
+
+    def test_too_few_trades_gives_no_claims(self):
+        r = wh.insights(self._trade(0, 5, 60))
+        self.assertEqual(r["items"], [])
+        self.assertIn("Not enough", r["note"])
+
+    def test_detects_holding_losers_longer(self):
+        evs = []
+        for i, (pnl, hold) in enumerate([(5, 60), (-5, 600), (6, 60), (-4, 600), (7, 60), (-6, 600), (4, 60), (-3, 600)]):
+            evs += self._trade(i, pnl, hold)
+        titles = [x["title"] for x in wh.insights(evs)["items"]]
+        self.assertIn("Holds losers longer than winners", titles)
+
+    def test_detects_sizing_up_after_loss(self):
+        evs = []
+        sizes_pnls = [(1, -5), (3, 5), (1, -5), (3, 5), (1, -5), (3, 5), (1, -5), (3, 5), (1, 5)]
+        for i, (size, pnl) in enumerate(sizes_pnls):
+            evs += self._trade(i, pnl, 60, size=size)
+        titles = [x["title"] for x in wh.insights(evs)["items"]]
+        self.assertIn("Sizes up after a loss", titles)

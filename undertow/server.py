@@ -225,16 +225,28 @@ def api_wallet(q: dict) -> dict:
             st["profit_factor"] = None
         trips = wallethistory.trips(events)
         history = {"window_start_ts": ev["window_start_ts"], "indexed_through_ts": ev["indexed_through_ts"],
-                   "stats": st, "events": len(events), "recent": events[-25:][::-1],
+                   "stats": st, "insights": wallethistory.insights(events), "events": len(events), "recent": events[-25:][::-1],
                    "trips": [{"market": t.market, "side": t.side, "opened_ts": t.opened_ts, "closed_ts": t.closed_ts,
                               "realized_net": t.realized_net, "ended_by": t.ended_by, "opened_in_window": t.opened_in_window,
                               "hold_seconds": t.hold_seconds} for t in trips[-15:][::-1]]}
     if not rows and not acct:
         return {"error": f"Account {aid} not found."}
+    gross = sum(r["value"] for r in rows)
+    longv = sum(r["value"] for r in rows if r["side"] == "Long")
+    margin = sum(r["deposit"] for r in rows)
+    portfolio = {"free_balance": acct.balance if acct else None, "locked_in_orders": acct.locked if acct else None,
+                 "margin_in_positions": margin, "position_value": gross, "long_value": longv, "short_value": gross - longv,
+                 "net_exposure": longv - (gross - longv), "unrealised_pnl": sum(r["total_pnl"] for r in rows),
+                 "avg_leverage": gross / margin if margin else None,
+                 "nearest_liq_distance_pct": min((abs(r["liq_distance_pct"]) for r in rows), default=None),
+                 "orders_value": sum(o["value"] for o in orders),
+                 "by_market": [{"name": r["name"], "side": r["side"], "value": r["value"], "share": r["value"] / gross if gross else 0,
+                                "margin": r["deposit"], "pnl": r["total_pnl"], "leverage": r["leverage"], "liq_distance_pct": r["liq_distance_pct"]}
+                               for r in sorted(rows, key=lambda r: -r["value"])]}
     return {"account_id": aid, "orders": orders, "history": history, "activity": envio_client.wallet_activity(aid), "address": acct.address if acct else None,
             "balance": acct.balance if acct else None, "locked": acct.locked if acct else None,
             "positions": sorted(rows, key=lambda r: -r["value"]),
-            "total_value": sum(r["value"] for r in rows), "total_pnl": sum(r["total_pnl"] for r in rows)}
+            "total_value": sum(r["value"] for r in rows), "total_pnl": sum(r["total_pnl"] for r in rows), "portfolio": portfolio}
 
 
 def api_protocol() -> dict:
@@ -272,9 +284,9 @@ def api_protocol() -> dict:
             "balances_of_those_accounts": sum(reg[i].balance for i in ids if i in reg),
             "markets": markets, "history": pts,
             "history_started": pts[0]["ts"] if pts else None, "envio": ev, "tvl_usd": tvl, "tvl_history": protocol_extra.tvl_history(),
-            "volume": protocol_extra.volume(), "activity": protocol_extra.active_and_liquidations(snap),
-            "not_available": ["fees paid and revenue (only the Envio indexer has them)", "deposit and withdrawal flows (only the Envio indexer has them; the TVL line below shows the net change in collateral held)", "market share against other perpetual exchanges (the free data source for that now needs a paid plan)"] if not ev else
-                             ["market share against other perpetual exchanges (the free data source for that now needs a paid plan)"]}
+            "volume": protocol_extra.volume(), "activity": protocol_extra.active_and_liquidations(snap), "flows": protocol_extra.flows_summary(),
+            "fees_est": protocol_extra.fee_estimate(protocol_extra.volume(), snap), "compare": protocol_extra.compare(protocol_extra.volume(), snap),
+            "not_available": ["protocol revenue (how fees are split with the exchange is not data we can read)"]}
 
 
 def api_bot() -> dict:

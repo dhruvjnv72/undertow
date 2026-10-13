@@ -494,6 +494,15 @@ def main() -> None:
     if LIVE.start():
         print("Live feed: connecting to Perpl's WebSocket", flush=True)
         protocol_extra.start(LIVE)  # volume totals from Perpl's candles, TVL samples
+
+        def _warm_protocol():  # keep the Protocol answer fresh in the background so opening the tab is instant
+            while True:
+                try:
+                    api_protocol()
+                except Exception:
+                    pass
+                time.sleep(9)
+        threading.Thread(target=_warm_protocol, daemon=True, name="protocol-warm").start()
     else:
         print(f"Live feed disabled: {LIVE.last_error}", flush=True)
     srv = ThreadingHTTPServer((a.host, a.port), Handler)

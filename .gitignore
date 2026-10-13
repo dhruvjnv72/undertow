@@ -18,3 +18,4 @@ indexer/envio-env.d.ts
 
 # local session handoff (transcript, reference screenshots): never publish
 handoff/
+.vercel

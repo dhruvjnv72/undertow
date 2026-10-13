@@ -679,6 +679,9 @@ async function loadProtocol() {
       card("Active traders" + (d.activity && d.activity.available ? ", last " + d.activity.traders_window_hours + " h" : ""), d.activity && d.activity.available ? d.activity.traders : "–") +
       card("Fees paid, 24h (estimated)", d.fees_est ? money(d.fees_est.fees_24h) : "–") + card("Accounts with positions", d.accounts_with_positions) + card("Open positions", d.positions) + card("Balances of those accounts", money(d.balances_of_those_accounts));
     window.protoData = d; drawProtoExtras(d);
+    clearTimeout(window.protoRetry);  // still collecting something? look again soon, while this tab is open
+    const partial = !(d.volume && d.volume.data) || !(d.flows && d.flows.available && d.flows.complete) || !(d.activity && d.activity.available);
+    if (partial && !$("#tab-protocol").hidden) window.protoRetry = setTimeout(loadProtocol, 6000);
     window.oiHistory = d.history; drawOI(filterRange(d.history));
     drawEnvio(d.envio);
     $("#oinote").textContent = d.history.length < 2 ? "Collecting… needs at least two refreshes." :
@@ -736,7 +739,7 @@ function drawProtoExtras(d) {
       `<tr><td class="l"><b>${esc(m.name)}</b></td><td>${money(m.volume_24h)}</td><td>${(m.volume_24h / tot * 100).toFixed(1)}% <span class="cbar" style="display:inline-block;height:8px;width:${Math.max(2, m.volume_24h / tot * 80).toFixed(0)}px;background:var(--accent);margin:0 0 0 6px;vertical-align:middle"></span></td><td>${m.trades_24h.toLocaleString()}</td></tr>`).join("");
     $("#voltablenote").textContent = "Share is each market's part of Perpl's own volume. Comparison with other exchanges is not shown: the free data source for it now needs a paid plan.";
   } else {
-    $("#volcards").innerHTML = `<div class="muted">${d.volume && d.volume.error ? esc(d.volume.error) : "Volume is being collected from Perpl's candle data. It appears about a minute after the server starts."}</div>`;
+    $("#volcards").innerHTML = `<div class="muted">${d.volume && d.volume.error ? esc(d.volume.error) + ". Trying again." : "Reading Perpl's candle data for every market… this page updates by itself as soon as it is ready (usually under a minute after the server starts)."}</div>`;
     $("#pvolchart").innerHTML = ""; $("#voltable").innerHTML = "";
   }
   const th = d.tvl_history || [], first = th[0], lastp = th[th.length - 1];

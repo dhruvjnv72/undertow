@@ -421,6 +421,10 @@
     <div class="row small muted" style="margin:10px 0 6px">Daily volume, range <select id="volrange"><option value="7">last 7 days</option><option value="30" selected>last 30 days</option><option value="90">last 90 days</option><option value="0">all available</option></select></div>
     <div id="pvolchart"></div><div class="muted small" id="volnote"></div></div>
   <div class="grid2">
+    <div class="card"><h2>Deposits and withdrawals (from the chain)</h2><div class="row" id="flowcards"></div><div id="flowchart" style="margin-top:8px"></div><div class="muted small" id="flownote"></div></div>
+    <div class="card"><h2>Perpl against other perpetual exchanges, last 24 hours</h2><div class="scroll"><table id="cmptable"></table></div><div class="muted small" id="cmpnote"></div></div>
+  </div>
+  <div class="grid2">
     <div class="card"><h2>Volume and share by market, last 24 hours</h2><div class="scroll"><table id="voltable"></table></div><div class="muted small" id="voltablenote"></div></div>
     <div class="card"><h2>Total value locked (collateral held by the exchange)</h2><div id="tvlbig"></div><div id="tvlchart"></div><div class="muted small" id="tvlnote"></div></div>
   </div>
@@ -637,7 +641,7 @@ async function lookup(q) {
         h += `<div class="warn"><b>${esc(p.name)} ${p.side.toLowerCase()}:</b> your liquidation is ${Math.abs(p.liq_distance_pct).toFixed(1)}% away, but ${money(p.in_path_total)} of other traders' ${word} (in ${p.in_path_count} zone${p.in_path_count > 1 ? "s" : ""} of $5k or more) would be liquidated first. The biggest, ${money(z.notional_others)}, is ${Math.abs(z.distance_pct).toFixed(1)}% away and could push the price on toward you.</div>`;
       });
     }
-    h += ordersHtml(w) + historyHtml(w);
+    h += portfolioHtml(w) + ordersHtml(w) + historyHtml(w) + insightsHtml(w.history);
     $("#walletresult").innerHTML = h;
   } catch (e) { $("#walletresult").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 }
@@ -656,7 +660,7 @@ async function loadProtocol() {
     const card = (label, val) => `<div style="min-width:170px"><div class="muted small">${label}</div><div style="font-size:22px;font-weight:600">${val}</div></div>`;
     $("#protocolcards").innerHTML = card("Open interest", money(d.total_oi_usd)) + card("TVL (collateral held)", d.tvl_usd == null ? "–" : money(d.tvl_usd)) +
       card("Active traders" + (d.activity && d.activity.available ? ", last " + d.activity.traders_window_hours + " h" : ""), d.activity && d.activity.available ? d.activity.traders : "–") +
-      card("Accounts with positions", d.accounts_with_positions) + card("Open positions", d.positions) + card("Balances of those accounts", money(d.balances_of_those_accounts));
+      card("Fees paid, 24h (estimated)", d.fees_est ? money(d.fees_est.fees_24h) : "–") + card("Accounts with positions", d.accounts_with_positions) + card("Open positions", d.positions) + card("Balances of those accounts", money(d.balances_of_those_accounts));
     window.protoData = d; drawProtoExtras(d);
     window.oiHistory = d.history; drawOI(filterRange(d.history));
     drawEnvio(d.envio);
@@ -690,11 +694,23 @@ function lineChartInto(el, pts, key) {
   s += `<text x="${L}" y="${H - 6}">${dt(pts[0])}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${dt(pts[pts.length - 1])}</text>`;
   el.innerHTML = s + "</svg>";
 }
+function flowChartInto(el, rows) {
+  if (!rows.length) { el.innerHTML = ""; return; }
+  const W = Math.max(320, el.clientWidth || 600), H = 190, L = 56, R = 8, T = 8, B = 22, mid = T + (H - T - B) / 2, half = (H - T - B) / 2;
+  const mx = Math.max(1, ...rows.map(r => Math.max(r.deposits, r.withdrawals))) * 1.1, bw = (W - L - R) / rows.length;
+  let s = svgOpen(W, H) + `<line x1="${L}" x2="${W - R}" y1="${mid}" y2="${mid}" stroke="var(--line)"/><text x="${L - 6}" y="${T + 10}" text-anchor="end">${money(mx)}</text><text x="${L - 6}" y="${H - B}" text-anchor="end">−${money(mx)}</text>`;
+  rows.forEach((r, i) => { const hu = r.deposits / mx * half, hd = r.withdrawals / mx * half, x = L + i * bw + .5, w = Math.max(1, bw - 1);
+    s += `<rect x="${x}" y="${mid - hu}" width="${w}" height="${hu}" fill="var(--short)"><title>${new Date(r.ts * 1000).toISOString().slice(5, 13)}h: deposits ${money(r.deposits)}, withdrawals ${money(r.withdrawals)}</title></rect><rect x="${x}" y="${mid}" width="${w}" height="${hd}" fill="var(--long)"/>`; });
+  const dt = r => new Date(r.ts * 1000).toISOString().slice(5, 13) + "h";
+  el.innerHTML = s + `<text x="${L}" y="${H - 6}">${dt(rows[0])}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${dt(rows[rows.length - 1])}</text></svg>`;
+}
 function drawProtoExtras(d) {
   const V = d.volume && d.volume.data, c = (l, v, sub) => `<div style="min-width:150px"><div class="muted small">${l}</div><div style="font-size:20px;font-weight:700">${v}</div>${sub ? `<div class="muted small">${sub}</div>` : ""}</div>`;
   if (V) {
     $("#volcards").innerHTML = c("Volume, 24h", money(V.volume_24h), V.trades_24h.toLocaleString() + " trades") + c("Volume, 7 days", money(V.volume_7d)) + c("Volume, 30 days", money(V.volume_30d)) +
-      c("Volume, all available", money(V.volume_all), V.days_available + " days of daily candles");
+      c("Volume, all available", money(V.volume_all), V.days_available + " days of daily candles") +
+      (d.fees_est ? `<div style="flex-basis:100%;height:0"></div>` + c("Fees paid, 24h (estimated)", money(d.fees_est.fees_24h), "volume x (taker + maker rate)") + c("Fees, 7 days (est.)", money(d.fees_est.fees_7d)) +
+        c("Fees, 30 days (est.)", money(d.fees_est.fees_30d)) + c("Fees, all available (est.)", money(d.fees_est.fees_all), `blended rate ${(d.fees_est.blended_rate * 100).toFixed(3)}%`) : "");
     const days = +$("#volrange").value, rows = days ? V.daily.slice(-days) : V.daily;
     barChartInto($("#pvolchart"), rows, "volumeUsd", "var(--accent)", r => `${new Date(r.ts * 1000).toISOString().slice(0, 10)}: ${money(r.volumeUsd)}, ${r.trades.toLocaleString()} trades`);
     $("#volnote").textContent = `Summed from Perpl's own public candle data for every market (volume in dollars of collateral, the same figure Perpl's candles report). Last computed ${new Date(V.computed_at * 1000).toISOString().slice(11, 16)} UTC; it refreshes every 10 minutes.`;
@@ -716,6 +732,28 @@ function drawProtoExtras(d) {
       `<tr><td class="l">${dtTs(l.ts)}</td><td class="l"><b>${esc(l.market)}</b></td><td class="l">${l.side}</td><td>#${l.account}</td><td>${price(l.price)}</td><td>${l.size.toPrecision(3)}</td><td>${money(l.usd)}</td></tr>`).join("") : `<tr><td class="muted l">No liquidations in the history we have loaded.</td></tr>`;
     $("#liqnote2").textContent = `${A.liquidations_in_window} liquidation${A.liquidations_in_window === 1 ? "" : "s"} in the loaded history (from ${dtTs(A.window_start_ts)} UTC). This is what the server has read from the chain, not Perpl's full history.`;
   } else { $("#liqtable2").innerHTML = ""; $("#liqnote2").textContent = "The position history has not been loaded yet; it loads by itself when the server starts."; }
+  const F = d.flows, fcard = (l, v, cls) => `<div style="min-width:130px"><div class="muted small">${l}</div><div style="font-size:19px;font-weight:700" class="${cls || ""}">${v}</div></div>`;
+  if (F && F.available) {
+    $("#flowcards").innerHTML = fcard(`Deposits, last ${F.hours_24} h`, money(F.deposits_24h), "up") + fcard("Withdrawals", money(F.withdrawals_24h), "dn") + fcard("Net inflow", signed(F.net_24h), F.net_24h >= 0 ? "up" : "dn") +
+      fcard(`Whole loaded window (${F.window_hours} h)`, signed(F.net), F.net >= 0 ? "up" : "dn");
+    flowChartInto($("#flowchart"), F.series);
+    $("#flownote").textContent = `${F.count} deposit and withdrawal events read from Perpl's contract, from ${dtTs(F.window_start_ts)} UTC. Green bars above the line are deposits per hour, red bars below it are withdrawals.${F.complete ? "" : ` Still loading: ${F.loaded_pct}% of the loaded window has been read, so these totals are partial for now.`}`;
+  } else {
+    $("#flowcards").innerHTML = ""; $("#flowchart").innerHTML = "";
+    $("#flownote").textContent = F && F.loading ? "Loading deposits and withdrawals from the chain; this runs in the background right after the history loads." : "Deposits and withdrawals appear once the position history has been loaded.";
+  }
+  const C = d.compare, fmtC = v => v == null ? "–" : money(v);
+  if (C && C.others) {
+    const names = Object.keys(C.others);
+    $("#cmptable").innerHTML = `<tr><th class="l">Market</th><th>Perpl volume</th>${names.map(n => `<th>${esc(n)} volume</th>`).join("")}<th>Perpl share</th><th>Perpl OI</th>${names.map(n => `<th>${esc(n)} OI</th>`).join("")}</tr>` +
+      ["BTC", "ETH", "SOL"].map(coin => { const pp = C.perpl[coin]; if (!pp) return ""; const vols = names.map(n => C.others[n][coin] ? C.others[n][coin].volume_24h : null);
+        const tot = pp.volume_24h + vols.reduce((a, b) => a + (b || 0), 0);
+        return `<tr><td class="l"><b>${coin}</b></td><td>${fmtC(pp.volume_24h)}</td>${vols.map(v => `<td>${fmtC(v)}</td>`).join("")}<td>${(pp.volume_24h / tot * 100).toFixed(2)}%</td><td>${fmtC(pp.oi_usd)}</td>${names.map(n => `<td>${fmtC(C.others[n][coin] && C.others[n][coin].oi_usd)}</td>`).join("")}</tr>`; }).join("");
+    $("#cmpnote").textContent = `Same-coin 24h volume and open interest from each exchange's public API (${names.join(", ")}); "Perpl share" is Perpl's part of the exchanges listed here only, not of the whole market.${C.error ? " Not reached: " + C.error + "." : ""}`;
+  } else {
+    $("#cmptable").innerHTML = "";
+    $("#cmpnote").textContent = C && C.error ? `Could not reach the other exchanges' public APIs from this server (${C.error}). Some networks block them; it works from a host that can reach them.` : "Comparing with other exchanges loads a few minutes after the server starts.";
+  }
   const perYear = 365 * 86400 / 2580;
   $("#fundtable").innerHTML = `<tr><th class="l">Market</th><th>Rate per ~43 min</th><th>Per year</th><th class="l">Who pays</th></tr>` + d.markets.map(m => m.funding_rate == null ? "" :
     `<tr><td class="l"><b>${esc(m.name)}</b></td><td>${(m.funding_rate * 100).toFixed(4)}%</td><td>${(m.funding_rate * perYear * 100).toFixed(1)}%</td><td class="l ${m.funding_rate > 0 ? "dn" : "up"}">${m.funding_rate > 0 ? "longs pay shorts" : m.funding_rate < 0 ? "shorts pay longs" : "nobody"}</td></tr>`).join("");
@@ -819,6 +857,28 @@ const dur = s => s == null ? "–" : s < 90 ? Math.round(s) + " s" : s < 5400 ? 
 function openedCell(p, w) {
   if (p.opened_ts) return `${agoTs(p.opened_ts)} ago<br>${dtTs(p.opened_ts)}`;
   return w.history ? `before ${dtTs(w.history.window_start_ts)}` : "–";
+}
+function portfolioHtml(w) {
+  const P = w.portfolio;
+  if (!P) return "";
+  const c = (l, v, sub, cls) => `<div style="min-width:140px;margin-bottom:8px"><div class="muted small">${l}</div><div style="font-size:17px;font-weight:700" class="${cls || ""}">${v}</div>${sub ? `<div class="muted small">${sub}</div>` : ""}</div>`;
+  let h = `<h2 style="margin-top:14px">Portfolio and margin overview</h2><div class="row" style="align-items:flex-start;gap:6px 22px">` +
+    c("Free balance", money(P.free_balance), "not in positions or orders") + c("Locked in resting orders", money(P.locked_in_orders), `${money(P.orders_value)} of orders`) +
+    c("Margin posted to positions", money(P.margin_in_positions)) + c("Position value", money(P.position_value), `${money(P.long_value)} long / ${money(P.short_value)} short`) +
+    c("Net exposure", (P.net_exposure >= 0 ? "long " : "short ") + money(Math.abs(P.net_exposure))) + c("Average leverage", P.avg_leverage ? P.avg_leverage.toFixed(1) + "x" : "–", "position value ÷ margin posted") +
+    c("Unrealised PnL", signed(P.unrealised_pnl), "", P.unrealised_pnl >= 0 ? "pos" : "neg") + c("Nearest liquidation", P.nearest_liq_distance_pct == null ? "–" : P.nearest_liq_distance_pct.toFixed(1) + "% away") + `</div>`;
+  if (P.by_market.length) {
+    h += `<div class="scroll"><table><tr><th class="l">Market</th><th class="l">Side</th><th style="min-width:160px">Share of exposure</th><th>Value</th><th>Margin</th><th>PnL</th><th>Leverage</th><th>Liq. distance</th></tr>` + P.by_market.map(m =>
+      `<tr><td class="l"><b>${esc(m.name)}</b></td><td class="l ${m.side === "Long" ? "up" : "dn"}">${m.side}</td><td><div class="cbar" style="height:10px;margin:2px 0;width:${Math.max(2, m.share * 100).toFixed(0)}%;background:var(--${m.side === "Long" ? "short" : "long"})"></div><span class="muted small">${(m.share * 100).toFixed(0)}%</span></td><td>${money(m.value)}</td><td>${money(m.margin)}</td><td class="${m.pnl >= 0 ? "pos" : "neg"}">${signed(m.pnl)}</td><td>${m.leverage ? m.leverage.toFixed(1) + "x" : "–"}</td><td>${pct(m.liq_distance_pct)}</td></tr>`).join("") + "</table></div>";
+  }
+  return h + `<div class="muted small" style="margin-top:6px">Built from the account's balance and positions in the latest snapshot. It is not Perpl's own account-value figure.</div>`;
+}
+function insightsHtml(H) {
+  const I = H && H.insights;
+  if (!I) return "";
+  const tone = { warn: "var(--warn)", good: "var(--short)", info: "var(--muted)" };
+  return `<h2 style="margin-top:14px">Trading habits (rule-based, not AI)</h2>` + (I.items.length ? I.items.map(x =>
+    `<div class="hl" style="border-left:3px solid ${tone[x.tone] || tone.info};padding-left:10px;margin-bottom:4px"><b>${esc(x.title)}.</b> ${esc(x.text)}</div>`).join("") : "") + `<div class="muted small">${esc(I.note)}</div>`;
 }
 function ordersHtml(w) {
   if (!w.orders || !w.orders.length) return `<h2 style="margin-top:18px">Open orders</h2><div class="muted small">No resting orders in the latest snapshot.</div>`;

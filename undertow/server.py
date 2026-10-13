@@ -32,7 +32,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import accounts as registry
-from . import config, envio_client, history_store, live, preview, protect, signals, verify, wallethistory
+from . import config, envio_client, history_store, live, preview, protect, protocol_extra, signals, verify, wallethistory
 from . import risk
 
 ROOT = Path(__file__).resolve().parent
@@ -264,11 +264,17 @@ def api_protocol() -> dict:
             row["positions"] += r["n_long"] + r["n_short"]
     pts = [series[b] for b in sorted(series)]
     ev = envio_client.stats()  # None until the Envio indexer is running and has data
+    try:
+        tvl = protocol_extra.tvl_usd()
+    except Exception:
+        tvl = None
     return {"total_oi_usd": total_oi, "accounts_with_positions": len(ids), "positions": len(snap["positions"]),
             "balances_of_those_accounts": sum(reg[i].balance for i in ids if i in reg),
             "markets": markets, "history": pts,
-            "history_started": pts[0]["ts"] if pts else None, "envio": ev,
-            "not_available": [] if ev else ["trading volume", "fees paid", "deposits and withdrawals", "liquidation history"]}
+            "history_started": pts[0]["ts"] if pts else None, "envio": ev, "tvl_usd": tvl, "tvl_history": protocol_extra.tvl_history(),
+            "volume": protocol_extra.volume(), "activity": protocol_extra.active_and_liquidations(snap),
+            "not_available": ["fees paid and revenue (only the Envio indexer has them)", "deposit and withdrawal flows (only the Envio indexer has them; the TVL line below shows the net change in collateral held)", "market share against other perpetual exchanges (the free data source for that now needs a paid plan)"] if not ev else
+                             ["market share against other perpetual exchanges (the free data source for that now needs a paid plan)"]}
 
 
 def api_bot() -> dict:
@@ -449,6 +455,7 @@ def main() -> None:
     follower.start()  # keeps wallet history current; backfills on first start
     if LIVE.start():
         print("Live feed: connecting to Perpl's WebSocket", flush=True)
+        protocol_extra.start(LIVE)  # volume totals from Perpl's candles, TVL samples
     else:
         print(f"Live feed disabled: {LIVE.last_error}", flush=True)
     srv = ThreadingHTTPServer((a.host, a.port), Handler)

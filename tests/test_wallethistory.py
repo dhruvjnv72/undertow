@@ -127,3 +127,16 @@ class OpenedAtTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DrawdownTests(unittest.TestCase):
+    def test_max_drawdown_is_peak_to_trough_of_running_total(self):
+        # running total: +10, +4 (win then loss -6), -6 (loss -10), +14 (win +20); peak 10 -> trough -6 = drawdown 16
+        evs = []
+        for i, pnl in enumerate([10.0, -6.0, -10.0, 20.0]):
+            evs += [ev(10 * i + 1, "opened", 100 * i, sizeAfter=1), ev(10 * i + 2, "closed", 100 * i + 50, sizeAfter=0, realizedPnlUsd=pnl)]
+        self.assertAlmostEqual(wh.stats(evs)["max_drawdown_usd"], 16.0)
+
+    def test_no_losses_means_zero_drawdown(self):
+        evs = [ev(1, "opened", 0, sizeAfter=1), ev(2, "closed", 50, sizeAfter=0, realizedPnlUsd=5.0)]
+        self.assertEqual(wh.stats(evs)["max_drawdown_usd"], 0.0)

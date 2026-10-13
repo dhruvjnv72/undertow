@@ -5,6 +5,7 @@ REM The RPC list below is tried in order; replace the first entry with your own 
 cd /d "%~dp0"
 set UNDERTOW_RPC=https://rpc2.monad.xyz,https://rpc-mainnet.monadinfra.com
 set PYTHONIOENCODING=utf-8
+set UNDERTOW_HISTORY_DAYS=3
 echo Starting Undertow at http://localhost:8000 (first data appears in about a minute)
 start "" http://localhost:8000
 python -m undertow.server --refresh

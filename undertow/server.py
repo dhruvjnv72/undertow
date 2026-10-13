@@ -249,7 +249,33 @@ def api_wallet(q: dict) -> dict:
             "total_value": sum(r["value"] for r in rows), "total_pnl": sum(r["total_pnl"] for r in rows), "portfolio": portfolio}
 
 
+_protocol_cache: dict = {"t": 0.0, "out": None}
+_envio_cache: dict = {"t": 0.0, "out": None}
+
+
+def _envio_stats():
+    with _lock:
+        if time.time() - _envio_cache["t"] < 60:
+            return _envio_cache["out"]
+    out = envio_client.stats()
+    with _lock:
+        _envio_cache.update(t=time.time(), out=out)
+    return out
+
+
+
 def api_protocol() -> dict:
+    """Cached for 10 s: it reads the history database, the Envio indexer and several files."""
+    with _lock:
+        if _protocol_cache["out"] is not None and time.time() - _protocol_cache["t"] < 10:
+            return _protocol_cache["out"]
+    out = _api_protocol_uncached()
+    with _lock:
+        _protocol_cache.update(t=time.time(), out=out)
+    return out
+
+
+def _api_protocol_uncached() -> dict:
     """Exchange-wide view from the live snapshot plus the history we have collected since the refresher started."""
     snap = snapshot()
     reg = registry.load_cache()
@@ -275,7 +301,7 @@ def api_protocol() -> dict:
             row["oi_usd"] += r["oi_usd"] or 0
             row["positions"] += r["n_long"] + r["n_short"]
     pts = [series[b] for b in sorted(series)]
-    ev = envio_client.stats()  # None until the Envio indexer is running and has data
+    ev = _envio_stats()  # None until the Envio indexer is running and has data (cached for a minute)
     try:
         tvl = protocol_extra.tvl_usd()
     except Exception:

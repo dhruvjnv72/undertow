@@ -245,6 +245,17 @@
   .logomark { width: 34px; height: 34px; flex: none; }
   :root { color-scheme: dark; }  /* tell the browser this page is dark, so it does not lighten or invert anything */
   .logomark { background: #161b22; border-radius: 8px; forced-color-adjust: none; }
+  /* markets: large type, the "biggest danger" sentence wraps onto 2 or 3 lines and takes the space the numbers do not need */
+  #tab-markets .card { min-height: calc(100vh - 150px); }
+  #markettable { table-layout: auto; font-size: 17px; }
+  #markettable th { font-size: 12.5px; padding: 12px 12px; }
+  #markettable td { padding: 12px 12px; vertical-align: middle; }
+  #markettable td:first-child { font-size: 19px; }
+  #markettable td:nth-last-child(1) { white-space: normal; width: 46%; font-size: 16px; line-height: 1.5; }
+  #markettable td:nth-last-child(1) .badge { margin-bottom: 4px; font-size: 13px; padding: 2px 11px; }
+  #markettable td:nth-last-child(1) .small { font-size: 16px; display: inline; }
+  #markettable th:nth-child(6), #markettable td:nth-child(6) { white-space: normal; }
+  @media (max-width: 900px) { #markettable { font-size: 14px; } #markettable td { padding: 12px 8px; } #markettable td:nth-last-child(1) { min-width: 260px; font-size: 13.5px; } }
 </style>
 </head>
 <body>
@@ -655,6 +666,7 @@ async function loadTop() {
 
 /* ---------- protocol ---------- */
 async function loadProtocol() {
+  if (!window.protoData) $("#protocolcards").innerHTML = `<div class="muted">Loading the exchange numbers… the first load reads the whole position history and can take a few seconds.</div>`;
   try {
     const d = await api("/api/protocol");
     const card = (label, val) => `<div style="min-width:170px"><div class="muted small">${label}</div><div style="font-size:22px;font-weight:600">${val}</div></div>`;

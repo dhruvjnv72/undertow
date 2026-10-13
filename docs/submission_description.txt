@@ -1,0 +1,74 @@
+Undertow is a read-only risk terminal for Perpl, the perpetual-futures exchange built on Monad. Because every Perpl position is public on-chain, Undertow turns the whole exchange into a risk screen a trader can read in seconds: where everyone gets liquidated, what happens to the price if that happens, and how every wallet is positioned.
+-----
+1. THE PROBLEM
+- Traders usually find out where liquidations sit only after the price has moved through them.
+- A liquidation is a forced market order, and forced orders can trigger more forced orders (a cascade).
+- A trading screen shows the order book, but not the forced orders waiting to hit it. A trader's own liquidation price says nothing about other people's positions between the price and them.
+-----
+2. WHY IT MATTERS
+- A trader about to open a long can see that $200k of other longs would be liquidated 2% below the price, against only $90k of buy orders to absorb them. That is a different trade from one with a thin zone and a deep book.
+- A market maker can see when to widen or pull quotes before a cluster is hit, instead of after.
+- Everyone can check the numbers: the page compares them with Perpl's own API on demand.
+-----
+3. WHAT IS NEW
+Perpl's own terminal, which we compared side by side, shows charts, the order book, trades and your own account. We did not find the following on a Perpl screen:
+- Liquidation zones drawn on the candlestick chart. Every open position has an exact liquidation price; we add them up by price band and draw them as faint red (longs) and green (shorts) bands with their dollar value.
+- Each zone compared with the resting orders between the price and the zone, labelled low, medium or high cascade risk in plain sentences ("$267k of shorts 14.5% above the price, resting orders in between: $150k"). We say when one account holds the zone.
+- A cascade simulator (section 5).
+- A look at every account, not only your own (section 4).
+- Mark versus oracle, live: the gap between Perpl's mark price and the oracle it reads from, in basis points, with a 10-minute chart of both lines. We do not claim it predicts anything; a widening gap shows the exchange's own price lagging or under stress.
+- A trade preview about risk, not execution: your liquidation price, other traders' zones in your path, fees, funding per day and slippage against the real book. It never sends an order.
+-----
+4. HOW WE SEE EVERY ACCOUNT
+- Perpl keeps every account, position and resting order on-chain, so no login or private API is needed.
+- Every ~45 seconds we run Perpl's official command-line tool (read-only) for a full snapshot, over several Monad RPC endpoints with automatic fallback.
+- Account numbers are mapped to wallet addresses with batched contract reads, so a trader can search by either.
+- For history we decode Perpl's position events from the chain into a local database (over half a million events) and rebuild each wallet's trades from them.
+- We checked this: for every open position the last recorded event leaves exactly the size and side the snapshot shows, and consecutive events of an account chain in size without gaps.
+-----
+5. THE CASCADE SIMULATOR, STEP BY STEP
+- You pick a target price with a slider or by typing it.
+- We find every position whose liquidation price lies between the mark and the target and show it, as a bar, next to the resting orders in the same stretch, with a plain verdict ("forced orders are 1.7x the resting orders: the price would likely run through this stretch").
+- Those forced orders are pushed through the real order book, best price first: longs sell into the bids, shorts buy from the asks. We show how much resting value they use up, over how many price levels, and how much finds no order at all.
+- The price moves to where the book pushed it. If "price follows the book" is ticked, that new price can liquidate more positions and the process repeats in rounds until nothing new is hit or the visible book runs out.
+- The result shows where the price could end up, and how far that is from the mark and from the target.
+- Two settings keep it honest: "share of forced orders reaching the book" (100% is the worst case; 50% assumes half is absorbed elsewhere) and the chain-reaction switch. Only resting orders within 30% of the best price at the snapshot count.
+- It is a labelled worst-case estimate, not a forecast, and it has not yet been compared with many real liquidations.
+-----
+6. PROTOCOL VIEW (works on any host)
+- Open interest with a history chart; TVL, read from the collateral balance the exchange contract holds.
+- Volume for 24h, 7 days, 30 days and all time, summed from Perpl's own candle data for every market, with a daily chart, a range switch and each market's share.
+- Estimated fees, active traders in the last 24 hours, recent real liquidations, funding per market with who pays, and long/short collateral skew per market.
+- Deposits, withdrawals and net inflow read from the contract's own events, with an hourly chart.
+- BTC, ETH and SOL volume and open interest compared with Hyperliquid and dYdX where their public APIs are reachable.
+- A "Run checks" button compares our numbers with Perpl's own API.
+-----
+7. WALLET VIEW
+- Search any address or account number.
+- Portfolio and margin overview: free balance, balance locked in orders, margin posted, position value, long and short exposure, average leverage, nearest liquidation, each market's share of exposure.
+- Open positions with size, entry, leverage, unrealised PnL, liquidation price, distance and the zones in the wallet's path; open orders; closed trades with realised PnL.
+- Performance analytics: win rate, profit factor, max drawdown, streaks, holding time, best and worst markets.
+- Trading habits: rule-based observations such as holding losers longer than winners, sizing up after a loss, leverage used and favourite hours. This is plain statistics, not AI.
+- A watchlist saves wallets and compares them side by side.
+-----
+8. ALSO
+- Live: a trading screen driven by Perpl's own WebSocket (price, one-column order book, trades, candles with volume from 5m to 1D, ranges 1d to 1y), momentum and flow signals, alerts and a feed-health indicator.
+- A paper-mode market-making bot that widens or pulls its quotes near big liquidation zones. It has never traded live, and its live mode is locked behind two switches.
+-----
+9. CORRECTNESS
+Our liquidation formula equals Perpl's own liquidation and bankruptcy price for every open position, and open interest, the order book and volume match Perpl's API. The Protocol page can rerun these checks.
+-----
+10. HONEST LIMITS
+- Positions are a snapshot up to a minute old.
+- Wallet history and flows cover the loaded days only.
+- Fees are an estimate (volume times maker plus taker rate; tiers and rebates ignored); protocol revenue is not shown.
+- The comparison with other exchanges depends on their public APIs being reachable from the host.
+- Wallet statistics exclude trading fees.
+-----
+11. WHAT COMES NEXT (plans, not built yet)
+- Telegram or Discord alerts when a large zone gets close to the price or a watched wallet nears its liquidation.
+- Longer wallet history and fees from an indexer, and an API so other tools can read the zones.
+- Testing the cascade simulator against real liquidations as more of them occur.
+-----
+BUILT WITH
+The Python standard library and one HTML page, with Perpl's own CLI and WebSocket for the data. Open source: https://github.com/dhruvjnv72/undertow

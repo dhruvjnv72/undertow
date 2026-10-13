@@ -94,6 +94,11 @@ def stats(events: list[dict]) -> dict:
         elif t.realized_net < -FLAT_USD:
             run_w, run_l = 0, run_l + 1
         streak["win"], streak["loss"] = max(streak["win"], run_w), max(streak["loss"], run_l)
+    cum = peak = dd = 0.0  # max drawdown: biggest fall of the running realized total from its previous high (starts at 0)
+    for t in sorted(ts, key=lambda x: x.closed_ts):
+        cum += t.realized_net
+        peak = max(peak, cum)
+        dd = max(dd, peak - cum)
     best = max(by_market.items(), key=lambda kv: kv[1]) if by_market else None
     worst = min(by_market.items(), key=lambda kv: kv[1]) if by_market else None
     return {
@@ -107,6 +112,7 @@ def stats(events: list[dict]) -> dict:
         "longest_win_streak": streak["win"], "longest_loss_streak": streak["loss"],
         "best_market": {"market": best[0], "usd": best[1]} if best else None,
         "worst_market": {"market": worst[0], "usd": worst[1]} if worst else None,
+        "max_drawdown_usd": dd,
         "liquidations": sum(1 for t in ts if t.ended_by == "liquidated"),
         "trips_opened_before_window": sum(1 for t in ts if not t.opened_in_window),
     }

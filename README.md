@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://undertow-hm6q.onrender.com/">https://undertow-hm6q.onrender.com/</a>
+  <a href="https://undertow-two.vercel.app/">https://undertow-two.vercel.app/</a>
   ·
   <a href="https://perpl.xyz">Perpl</a>
 </p>
@@ -106,6 +106,6 @@ python -m undertow.history_loader --days 7                               # walle
 UNDERTOW_NETWORK=testnet python -m undertow.server --refresh --port 8001
 ```
 
-Live site: https://undertow-hm6q.onrender.com/
+Live site: https://undertow-two.vercel.app/
 
 Hosting: [docs/DEPLOY.md](docs/DEPLOY.md). Indexer: [indexer/README.md](indexer/README.md).

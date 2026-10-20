@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "",
   "installCommand": "",
+  "buildCommand": "sed -i \"s|name=\\\"undertow-api\\\" content=\\\"\\\"|name=\\\"undertow-api\\\" content=\\\"$UNDERTOW_API\\\"|\" undertow/web/index.html",
   "outputDirectory": "undertow/web"
 }

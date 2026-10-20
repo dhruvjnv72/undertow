@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="undertow-api" content="">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>Undertow</title>
@@ -478,7 +479,9 @@
 
 <script>
 const $ = s => document.querySelector(s);
-const api = async (path) => { const r = await fetch(path); const j = await r.json(); if (!r.ok || j.error) throw new Error(j.error || r.status); return j; };
+// API_BASE: empty when the page is served by the backend itself; set it (meta tag below, or ?api=https://host) when the page is hosted separately.
+const API_BASE = ((new URLSearchParams(location.search).get("api")) || (document.querySelector('meta[name="undertow-api"]') || {}).content || "").replace(/\/+$/, "");
+const api = async (path) => { const r = await fetch(API_BASE + path); const j = await r.json(); if (!r.ok || j.error) throw new Error(j.error || r.status); return j; };
 const money = v => v == null ? "–" : v >= 1e9 ? "$" + (v/1e9).toFixed(2) + "B" : v >= 1e6 ? "$" + (v/1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v/1e3).toFixed(v >= 1e5 ? 0 : 1) + "k" : "$" + v.toFixed(v < 10 ? 2 : 0);
 const price = v => v == null ? "–" : v >= 1000 ? v.toLocaleString(undefined, {maximumFractionDigits: 1}) : v >= 1 ? v.toFixed(3) : v.toPrecision(3);
 const axis = v => v >= 1000 ? Math.round(v).toLocaleString() : price(v);

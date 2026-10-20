@@ -2,8 +2,5 @@
   "framework": null,
   "buildCommand": "",
   "installCommand": "",
-  "outputDirectory": "undertow/web",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "https://undertow-hm6q.onrender.com/api/:path*" }
-  ]
+  "outputDirectory": "undertow/web"
 }

@@ -21,6 +21,7 @@ JSON API (all GET):
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import threading
@@ -459,6 +460,10 @@ class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
         self.send_header("Content-Type", ctype)
+        if len(body) > 1024 and "gzip" in self.headers.get("Accept-Encoding", ""):
+            body = gzip.compress(body, 5)  # about 5x smaller: keeps a free host's bandwidth allowance from running out
+            self.send_header("Content-Encoding", "gzip")
+        self.send_header("Vary", "Accept-Encoding")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("Access-Control-Allow-Origin", "*")  # public, read-only data: lets the page be hosted on a different site

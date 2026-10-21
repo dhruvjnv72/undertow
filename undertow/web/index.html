@@ -1047,7 +1047,10 @@ async function liveTick() {
   }
   liveBusy = false;
 }
-setInterval(liveTick, 500);
+// Poll once a second, and stop after 5 minutes without any mouse, key or touch input (a forgotten open tab would otherwise use up a free host's bandwidth).
+let lastInput = Date.now();
+["mousemove", "keydown", "touchstart", "click", "scroll"].forEach(ev => addEventListener(ev, () => { lastInput = Date.now(); }, { passive: true }));
+setInterval(() => { if (Date.now() - lastInput < 5 * 60 * 1000) liveTick(); }, 1000);
 
 /* ---------- live: candles with volume, current-price line and liquidation-zone bands ---------- */
 let candlePending = false, candleDays = 5, candleN = 120, candleRes = 3600, candles = [], candleMkt = null, candleBusy = false, candleAt = 0, liveZones = [], liveMarkNow = null;

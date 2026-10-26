@@ -322,7 +322,9 @@ class Follower(threading.Thread):
         self.state = {"running": False, "error": "", "last_new": 0, "backfilling": False}
 
     def run(self):
+        from . import activity
         while True:
+            activity.wait()
             try:
                 self.state["backfilling"] = coverage() is None
                 self.state["running"] = True

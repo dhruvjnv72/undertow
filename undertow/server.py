@@ -33,6 +33,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import accounts as registry
+from . import activity
 from . import config, envio_client, history_store, live, preview, protect, protocol_extra, signals, verify, wallethistory
 from . import risk
 
@@ -44,6 +45,7 @@ BOT_STATE = config.BOT_DIR / "state.json"
 BOT_LOG = config.BOT_DIR / "log.jsonl"
 
 IN_PATH_MIN_USD = 5_000
+REFRESH_PAUSE = float(os.environ.get("UNDERTOW_REFRESH_SECONDS", "30"))  # pause between data refreshes (was 2 s: about 5 GB a day)
 PAPER_BOT = {"auto": False}  # True when this server runs the paper bot itself (see main)
 _cache: dict = {"mtime": 0.0, "snap": None, "formula": None, "oi": None}
 _lock = threading.Lock()
@@ -368,7 +370,7 @@ def api_protect(q: dict) -> dict:
                         zone_min_usd=_num(q, "min", 25_000.0), within_pct=_num(q, "within", 1.0))
     return {"rule": asdict(rule), **protect.evaluate(snap, rule),
             "limits": ["Runs inside Undertow, not on Perpl: if this program stops, the rule stops.",
-                       "Checked once per data refresh (about every 45 seconds), not every 0.4 s block."]}
+                       "Checked once per data refresh (about once a minute while someone is using the site), not every 0.4 s block."]}
 
 
 LIVE = live.LiveFeed()
@@ -473,6 +475,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
         q = parse_qs(u.query)
+        if u.path.startswith("/api/"):
+            activity.touch()  # wakes the background threads; "/" is left out because the health check hits it
         try:
             if u.path in ("/", "/index.html"):
                 return self._send(200, (WEB / "index.html").read_bytes(), "text/html; charset=utf-8")
@@ -505,13 +509,14 @@ def main() -> None:
 
         def loop():
             while True:
+                activity.wait()  # nobody on the site: no refresh, no bandwidth
                 try:
                     s = run_cycle(a.rpc, None, False)
                     print(f"[refresh] block {s['block']} in {s['total_seconds']}s", flush=True)
                 except Exception:
                     traceback.print_exc()
                     time.sleep(15)  # back off after an error (connection dropped, rate limit)
-                time.sleep(2)
+                time.sleep(REFRESH_PAUSE)
         threading.Thread(target=loop, daemon=True).start()
     follower = history_store.Follower(days=float(os.environ.get("UNDERTOW_HISTORY_DAYS", "1")),
                                       perp_ids_fn=lambda: [int(k) for k in snapshot()["perps"]])
@@ -522,6 +527,7 @@ def main() -> None:
 
         def _warm_protocol():  # keep the Protocol answer fresh in the background so opening the tab is instant
             while True:
+                activity.wait()
                 try:
                     api_protocol()
                 except Exception:

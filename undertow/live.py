@@ -20,7 +20,7 @@ import time
 import urllib.request
 from collections import deque
 
-from . import config
+from . import activity, config
 
 try:  # the dashboard works without it; only the Live tab needs it
     import websockets
@@ -81,6 +81,8 @@ class LiveFeed:
     async def _main(self) -> None:
         backoff = 1.0
         while True:
+            while not activity.active():  # nobody on the site: stay disconnected
+                await asyncio.sleep(2)
             try:
                 if not self.markets:
                     await asyncio.get_running_loop().run_in_executor(None, self._load_markets)
@@ -108,6 +110,8 @@ class LiveFeed:
             self.last_error = ""
             async for raw in ws:
                 self._on_message(json.loads(raw))
+                if not activity.active():
+                    return  # close the stream: it is most of the bandwidth
 
     # ------------------------------------------------------------ message handling
     def _on_message(self, m: dict) -> None:

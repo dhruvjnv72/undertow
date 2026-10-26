@@ -13,7 +13,7 @@ import json
 import threading
 import time
 
-from . import config, history_store, live
+from . import activity, config, history_store, live
 
 TOKEN = "0x00000000efe302beaa2b3e6e1b18d08d69a9012a"  # AUSD, the collateral token (from Perpl's /pub/context)
 TOKEN_DECIMALS = 6
@@ -117,6 +117,7 @@ def start(feed) -> None:
     def numbers_loop():
         last_vol = last_tvl = 0.0
         while True:
+            activity.wait()
             try:
                 if feed.markets and (_vol["state"] is None or time.time() - last_vol > VOLUME_REFRESH_S):
                     refresh_volume(feed)
@@ -132,6 +133,7 @@ def start(feed) -> None:
 
     def flows_loop():
         while True:
+            activity.wait()
             try:
                 history_store.flows_catch_up()
             except Exception:
